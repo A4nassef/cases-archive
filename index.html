@@ -38,6 +38,9 @@ body{margin:0;font-family:"Cairo",system-ui;background:radial-gradient(1200px 80
 .del{position:absolute;top:8px;left:8px;background:var(--danger);color:#fff;border:0;border-radius:10px;padding:6px 8px;cursor:pointer;display:none}
 .card.admin .del{display:block}
 .card .topBtns{position:absolute;top:8px;right:8px;display:flex;gap:6px}
+.add-img{display:none}
+.card.admin .add-img{display:inline-block}
+
 .empty{text-align:center;color:var(--muted);padding:36px 10px;border:1px dashed var(--ring);border-radius:16px;margin-top:8px}
 .footer{margin-top:28px;color:#a1a1aa;font-size:12px;text-align:center}
 .pill{border:1px solid var(--ring);padding:6px 10px;border-radius:999px;font-size:12px;background:#0b1223;color:#d1d5db}
@@ -92,7 +95,7 @@ body{margin:0;font-family:"Cairo",system-ui;background:radial-gradient(1200px 80
     <button class="btn" id="nextPage" disabled>التالي</button>
   </div>
 
-  <div class="footer">يعرض 50 حالة لكل صفحة • الصور تُعرض داخل الصفحة • الملاحظات للجميع • إدارة الحالات للأدمن.</div>
+  <div class="footer">يعرض 50 حالة/صفحة • الصور تُعرض داخل الصفحة • الملاحظات للجميع • إدارة الحالات للأدمن.</div>
 </div>
 
 <!-- إضافة حالة -->
@@ -101,7 +104,7 @@ body{margin:0;font-family:"Cairo",system-ui;background:radial-gradient(1200px 80
     <h3 style="margin:0 0 8px;font-weight:800">إضافة حالة جديدة</h3>
     <div class="field"><label>الاسم</label><input type="text" id="caseName" placeholder="مثال: أحمد علي"></div>
     <div class="field">
-      <label>روابط الصور (حتى 7 – كل رابط في سطر)</label>
+      <label>روابط الصور (اختياري – كل رابط في سطر)</label>
       <textarea id="caseUrls" rows="4" placeholder="الصق روابط (Drive/Dropbox/OneDrive)… كل رابط في سطر"></textarea>
     </div>
     <div class="row" style="margin-top:8px"><button class="btn" id="cancelAdd">إلغاء</button><button class="btn primary" id="confirmAdd">حفظ</button></div>
@@ -124,7 +127,7 @@ body{margin:0;font-family:"Cairo",system-ui;background:radial-gradient(1200px 80
       </div>
       <div class="row">
         <button class="btn primary" id="addImageLinkBtn">+ إضافة الرابط</button>
-        <span class="pill">حد أقصى 7 صور/حالة</span>
+        <span class="pill">يمكنك إضافة أي عدد من الصور</span>
       </div>
       <div id="imgAddMsg" style="margin-top:6px;color:#a1a1aa;font-size:12px"></div>
     </div>
@@ -259,8 +262,7 @@ searchInput.addEventListener("input",()=>{ state.query=searchInput.value; state.
 clearBtn.onclick=()=>{ searchInput.value=""; state.query=""; state.page=1; state.pagesCursors=[null]; loadPage(); };
 
 /* ===== Firestore pagination (50/صفحة) ===== */
-async function loadPage(direction=0){
-  // direction: 0 reset / +1 next / -1 prev
+async function loadPage(){
   const base = collection(db,"cases");
   const qNorm = normalizeArabic(state.query);
   const pageLim = limit(state.pageSize);
@@ -290,12 +292,12 @@ nextPageBtn.onclick = async ()=>{
   if(!state.lastVisible) return;
   state.pagesCursors[state.page] = state.lastVisible;
   state.page += 1;
-  await loadPage(+1);
+  await loadPage();
 };
 prevPageBtn.onclick = async ()=>{
   if(state.page<=1) return;
   state.page -= 1;
-  await loadPage(-1);
+  await loadPage();
 };
 
 /* ===== Render grid ===== */
@@ -305,7 +307,7 @@ function renderGrid(){
   emptyEl.style.display="none";
 
   state.cases.forEach(item=>{
-    const imgs = Array.isArray(item.images) ? item.images.slice(0,7) : (item.imageUrl? [item.imageUrl]:[]);
+    const imgs = Array.isArray(item.images) ? item.images : (item.imageUrl? [item.imageUrl]:[]);
     const first = imgs[0] ? toDirectView(imgs[0]) : "";
     const fallback = imgs[0] ? driveFallback(first) : "";
 
@@ -314,6 +316,7 @@ function renderGrid(){
     card.innerHTML = `
       <div class="topBtns">
         <button class="btn" data-images="${item.id}">الصور (${imgs.length||0})</button>
+        <button class="btn add-img" data-addimg="${item.id}">+ إضافة صورة</button>
         <button class="btn" data-notes="${item.id}" id="btn-notes-${item.id}">Progress Notes (…)</button>
       </div>
       <img class="thumb" loading="lazy" referrerpolicy="no-referrer" src="${first}" alt="${item.name}">
@@ -327,9 +330,14 @@ function renderGrid(){
     im.onerror=()=>{ if(!tried && fallback && fallback!==first){ tried=true; im.src=fallback; } };
     gridEl.appendChild(card);
 
-    // تحميل عداد الملاحظات
+    // عداد الملاحظات
     updateNotesCount(item.id).catch(()=>{});
   });
+
+  // أحداث الأزرار
+  gridEl.querySelectorAll("[data-images]").forEach(b=> b.onclick=()=>openImagesModal(b.getAttribute("data-images")) );
+  gridEl.querySelectorAll("[data-addimg]").forEach(b=> b.onclick=()=>{ openImagesModal(b.getAttribute("data-addimg")); setTimeout(()=>{ if(state.isAdmin) newImageUrl.focus(); }, 50); });
+  gridEl.querySelectorAll("[data-notes]").forEach(b=> b.onclick=()=>openNotesModal(b.getAttribute("data-notes")) );
 
   // حذف حالة (أدمن)
   if(state.isAdmin){
@@ -340,15 +348,10 @@ function renderGrid(){
         if(!item) return;
         if(!confirm(`مسح الحالة "${item.name}"؟`)) return;
         await deleteDoc(doc(db,"cases",id));
-        // إعادة التحميل لنفس الصفحة
         await loadPage();
       };
     });
   }
-
-  // فتح الصور/النوتس
-  gridEl.querySelectorAll("[data-images]").forEach(b=> b.onclick=()=>openImagesModal(b.getAttribute("data-images")) );
-  gridEl.querySelectorAll("[data-notes]").forEach(b=> b.onclick=()=>openNotesModal(b.getAttribute("data-notes")) );
 }
 
 /* ===== Images modal + add link (admin) ===== */
@@ -360,7 +363,7 @@ function openImagesModal(caseId){
   newImageUrl.value=""; imgAddMsg.textContent="";
 
   imagesWrap.innerHTML="";
-  const imgs = (currentCase.images||[]).slice(0,7);
+  const imgs = (currentCase.images||[]);
   if(!imgs.length){ imagesWrap.innerHTML=`<div class="empty">لا توجد صور.</div>`; }
   else{
     const list = imgs.map(u=>toDirectView(u));
@@ -382,13 +385,10 @@ addImageLinkBtn.onclick = async ()=>{
   const url = (newImageUrl.value||"").trim();
   if(!currentCase || !url) return;
   try{
-    const currentCount = (currentCase.images||[]).length;
-    if(currentCount >= 7){ alert("وصلت للحد الأقصى (7 صور للحالة)."); return; }
     await updateDoc(doc(db,"cases",currentCase.id), { images: arrayUnion(url) });
     imgAddMsg.textContent = "تمت إضافة الرابط ✅";
-    // تحدّث الواجهة: أعد الفتح لتتحدث القائمة والعداد
-    await loadPage(); // لتتحدث بطاقات العدّاد
-    openImagesModal(currentCase.id);
+    await loadPage(); // لتحديث عدّاد الصور على الكروت
+    openImagesModal(currentCase.id); // إعادة فتح لتحديث القائمة داخل المودال
   }catch(e){
     alert("تعذّر إضافة الرابط (تأكد من صلاحيات الأدمن).");
   }
@@ -452,7 +452,6 @@ function renderAuthArea(user){
     inBtn.onclick=async ()=>{ try{ await signInWithEmailAndPassword(auth,email.value,pass.value);}catch(err){ alert("خطأ: "+(err?.message||"")); } };
     authArea.append(email,pass,inBtn);
   }
-  // إعادة التحميل لنفس الصفحة لضمان إظهار أزرار الأدمن
   loadPage();
 }
 onAuthStateChanged(auth, renderAuthArea);
@@ -464,7 +463,7 @@ cancelAdd.onclick=()=>{ addModal.style.display="none"; caseName.value=""; caseUr
 
 confirmAdd.onclick=async ()=>{
   const name=(caseName.value||"").trim();
-  let urls=parseUrls(caseUrls.value).slice(0,7);
+  let urls=parseUrls(caseUrls.value);
   if(!name){ alert("أدخل الاسم"); return; }
   const normalizedName=normalizeArabic(name);
   const ref=doc(collection(db,"cases"));
