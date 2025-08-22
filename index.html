@@ -9,7 +9,7 @@
     :root{
       --bg:#0f172a; --card:#0b1223; --ring:#1f2937; --text:#e5e7eb; --muted:#94a3b8;
       --chip:#111827; --accent:#22d3ee; --accent-2:#a78bfa; --radius:18px; --shadow:0 10px 30px rgba(0,0,0,.35);
-      --danger:#dc2626; --ok:#10b981; --info:#60a5fa;
+      --danger:#dc2626; --ok:#10b981; --light:#111827; --note-bg:#0c1426; /* فاتح شوية */
     }
     *{box-sizing:border-box}
     body{margin:0;font-family:"Cairo",system-ui; background:radial-gradient(1200px 800px at 80% -10%, #1e293b 0%, #0b1223 45%, #0f172a 100%);color:var(--text);min-height:100dvh}
@@ -23,7 +23,6 @@
     .btn{background:#0b1223;border:1px solid var(--ring);color:#d1d5db;border-radius:12px;padding:9px 12px;cursor:pointer}
     .btn:hover{border-color:#3b82f6}
     .btn.primary{background:linear-gradient(90deg,#0ea5e9,#22d3ee);color:#001219;border:0;font-weight:800}
-    .btn.ghost{background:transparent;border:1px dashed var(--ring)}
     .btn.danger{background:var(--danger);color:#fff;border:0}
     .letters{display:flex;gap:8px;overflow:auto;padding:6px 2px 2px;scrollbar-width:none}
     .letters::-webkit-scrollbar{display:none}
@@ -42,16 +41,13 @@
     .empty{text-align:center;color:var(--muted);padding:36px 10px;border:1px dashed var(--ring);border-radius:16px;margin-top:8px}
     .footer{margin-top:28px;color:#a1a1aa;font-size:12px;text-align:center}
     .pill{border:1px solid var(--ring);padding:6px 10px;border-radius:999px;font-size:12px;background:#0b1223;color:#d1d5db}
-
+    /* Modals */
     .modal{position:fixed;inset:0;background:rgba(2,6,23,.6);backdrop-filter:blur(4px);display:none;align-items:center;justify-content:center;padding:16px;z-index:50}
     .modal .box{width:min(720px,100%);max-height:85dvh;overflow:auto;background:#0b1223;border:1px solid var(--ring);border-radius:18px;padding:16px}
     .field{display:flex;flex-direction:column;gap:6px;margin:10px 0}
-    .field input[type="text"], .field input[type="datetime-local"], .field textarea, .field input[type="email"], .field input[type="password"], .field select{background:#0b1223;border:1px solid var(--ring);color:#e5e7eb;border-radius:12px;padding:10px 12px}
+    .field input[type="text"], .field textarea, .field input[type="email"], .field input[type="password"]{background:#0b1223;border:1px solid var(--ring);color:#e5e7eb;border-radius:12px;padding:10px 12px}
     .thumbs{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px}
-    .note{border:1px solid var(--ring);border-radius:12px;padding:8px 10px;margin:6px 0;background:#0c1426}
-    .note .meta{font-size:12px;color:#a1a1aa;display:flex;justify-content:space-between}
-    .notesFilter{display:flex;gap:6px;flex-wrap:wrap}
-    .toast{position:fixed;bottom:18px;right:18px;background:#0b1223;border:1px solid var(--ring);padding:10px 14px;border-radius:12px;box-shadow:var(--shadow);display:none}
+    .note{border:1px solid var(--ring);border-radius:12px;padding:10px;margin:8px 0;background:var(--note-bg)}
   </style>
 </head>
 <body>
@@ -78,7 +74,7 @@
     <div id="grid" class="grid" role="list"></div>
     <div id="empty" class="empty" style="display:none">لا توجد نتائج مطابقة حاليًا.</div>
 
-    <div class="footer">الصور (عدة صور) وإدارتها للأدمن فقط • الملاحظات متاحة للجميع.</div>
+    <div class="footer">الصور المتعددة وإدارتها للأدمن فقط • <strong>Progress Notes</strong> متاحة للجميع للإضافة.</div>
   </div>
 
   <!-- Add Case -->
@@ -106,13 +102,6 @@
           <button class="btn" id="closeImages">إغلاق</button>
         </div>
       </div>
-      <div id="imagesAdmin" style="display:none;margin:8px 0">
-        <div class="field"><input type="text" id="newImageUrl" placeholder="رابط صورة جديد"></div>
-        <div class="row">
-          <button class="btn" id="addImageBtn">+ إضافة صورة</button>
-          <span class="pill">للأدمن فقط</span>
-        </div>
-      </div>
       <div id="imagesWrap" class="thumbs" style="margin-top:10px"></div>
     </div>
   </div>
@@ -121,11 +110,10 @@
   <div class="modal" id="notesModal" aria-hidden="true">
     <div class="box">
       <div class="row" style="justify-content:space-between;align-items:center">
-        <h3 style="margin:0;font-weight:800">الملاحظات (Progress Notes)</h3>
+        <h3 style="margin:0;font-weight:800">Progress Notes</h3>
         <button class="btn" id="closeNotes">إغلاق</button>
       </div>
 
-      <div class="notesFilter" id="notesFilter" style="margin-top:8px"></div>
       <div id="notesList" style="margin-top:10px"></div>
 
       <div class="field" style="margin-top:12px">
@@ -133,31 +121,15 @@
         <input type="text" id="noteBy" placeholder="مثال: د. محمد / تمريض / ولي أمر">
       </div>
       <div class="field">
-        <label>نوع الملاحظة</label>
-        <select id="noteType">
-          <option value="S">Subjective (S)</option>
-          <option value="O">Objective (O)</option>
-          <option value="A">Assessment (A)</option>
-          <option value="P">Plan (P)</option>
-          <option value="X">أخرى</option>
-        </select>
-      </div>
-      <div class="field">
         <label>الملاحظة</label>
         <textarea id="noteText" rows="3" placeholder="اكتب الملاحظة هنا..."></textarea>
       </div>
-      <div class="field">
-        <label>موعد متابعة (اختياري)</label>
-        <input type="datetime-local" id="noteFollowUp">
-      </div>
       <div class="row">
-        <span class="pill" id="notesCounter">0 ملاحظة</span>
-        <button class="btn primary" id="addNoteBtn">إضافة ملاحظة</button>
+        <span class="pill" id="notesCounter">0</span>
+        <button class="btn primary" id="addNoteBtn">+ إضافة ملاحظة</button>
       </div>
     </div>
   </div>
-
-  <div class="toast" id="toast"></div>
 
 <script type="module">
 /* ========= Firebase ========= */
@@ -179,15 +151,10 @@ const db = getFirestore(app);
 
 /* ========= Helpers ========= */
 const ARABIC_LETTERS = ["الكل","ا","ب","ت","ث","ج","ح","خ","د","ذ","ر","ز","س","ش","ص","ض","ط","ظ","ع","غ","ف","ق","ك","ل","م","ن","ه","و","ي"];
-const DIACRITICS = /[\u064B-\u065F\u0670\u06D6-\u06ED]/g;
+const DIACRITICS = /[\u064B-\u065F\u06D6-\u06ED]/g;
 const normalizeArabic = s => (s||"").replace(DIACRITICS,"").replace(/[إأآا]/g,"ا").replace(/ى/g,"ي").replace(/ؤ/g,"و").replace(/ئ/g,"ي").trim();
-const toast = (msg,type="info")=>{
-  const el = document.getElementById("toast");
-  el.style.display="block"; el.textContent = msg; 
-  el.style.borderColor = type==="ok"? "#166534" : type==="err" ? "#7f1d1d" : "#1f2937";
-  setTimeout(()=>{ el.style.display="none"; }, 3000);
-};
-function parseUrls(raw){ return (raw||"").split(/\n+/).map(x=>x.trim()).filter(Boolean); }
+const parseUrls = raw => (raw||"").split(/\n+/).map(x=>x.trim()).filter(Boolean);
+/* Google Drive: primary + fallback */
 function drivePair(url){
   if(!url) return {primary:"", fallback:""};
   let m = url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/) || url.match(/[?&]id=([a-zA-Z0-9_-]+)/);
@@ -196,7 +163,7 @@ function drivePair(url){
 }
 
 /* ========= State + Elements ========= */
-let state = { letter:"الكل", query:"", isAdmin:false, cases:[], currentCase:null, notesFilter:"ALL" };
+let state = { letter:"الكل", query:"", isAdmin:false, cases:[], currentCase:null };
 
 const gridEl = document.getElementById("grid");
 const emptyEl = document.getElementById("empty");
@@ -214,20 +181,14 @@ const authArea = document.getElementById("authArea");
 const imagesModal = document.getElementById("imagesModal");
 const imagesWrap  = document.getElementById("imagesWrap");
 const closeImages = document.getElementById("closeImages");
-const imagesAdmin = document.getElementById("imagesAdmin");
-const newImageUrl  = document.getElementById("newImageUrl");
-const addImageBtn  = document.getElementById("addImageBtn");
 
 const notesModal  = document.getElementById("notesModal");
 const closeNotes  = document.getElementById("closeNotes");
 const notesList   = document.getElementById("notesList");
 const noteBy      = document.getElementById("noteBy");
-const noteType    = document.getElementById("noteType");
 const noteText    = document.getElementById("noteText");
-const noteFollowUp= document.getElementById("noteFollowUp");
 const addNoteBtn  = document.getElementById("addNoteBtn");
 const notesCounter= document.getElementById("notesCounter");
-const notesFilterEl = document.getElementById("notesFilter");
 
 /* ========= Letters / URL ========= */
 function renderLetters(){
@@ -278,7 +239,7 @@ function renderGrid(){
     card.innerHTML = `
       <div class="topBtns">
         <button class="btn" data-images="${item.id}">الصور (${imgs.length||0})</button>
-        <button class="btn" data-notes="${item.id}">ملاحظات</button>
+        <button class="btn" data-notes="${item.id}" id="btn-notes-${item.id}">Progress Notes (…)</button>
       </div>
       <img class="thumb" loading="lazy" src="${first}" alt="${item.name}">
       <button class="del" data-del="${item.id}">حذف</button>
@@ -287,8 +248,7 @@ function renderGrid(){
         <div class="badge">${normalizeArabic(item.name).charAt(0) || ""}</div>
       </div>
     `;
-    const img = card.querySelector("img");
-    let triedFallback = false;
+    const img = card.querySelector("img"); let triedFallback = false;
     img.onerror = ()=> {
       if(!triedFallback && pair.fallback && pair.fallback!==first){ triedFallback = true; img.src = pair.fallback; return; }
       img.src = "data:image/svg+xml;utf8," + encodeURIComponent(
@@ -296,6 +256,9 @@ function renderGrid(){
       );
     };
     gridEl.appendChild(card);
+
+    // حمّل عداد الملاحظات (بدون أي تعديل في القواعد)
+    updateNotesCount(item.id).catch(()=>{ /* تجاهل لو مقفولة */ });
   });
 
   if(state.isAdmin){
@@ -317,7 +280,7 @@ function renderGrid(){
   });
 }
 
-/* ========= Images Modal (with admin manage) ========= */
+/* ========= Images Modal ========= */
 function openImagesModal(caseId){
   const item = state.cases.find(c=>c.id===caseId); if(!item) return;
   state.currentCase = item;
@@ -325,93 +288,48 @@ function openImagesModal(caseId){
   const imgs = Array.isArray(item.images) ? item.images : (item.imageUrl ? [item.imageUrl] : []);
   if(!imgs.length){ imagesWrap.innerHTML = `<div class="empty">لا توجد صور.</div>`; }
   else {
-    imgs.forEach((u,idx)=>{
+    imgs.forEach(u=>{
       const p = drivePair(u);
-      const cell = document.createElement("div");
-      cell.innerHTML = `
-        <a href="${p.primary.replace("export=view","export=download")}" target="_blank" rel="noopener">
-          <img class="thumb" style="border-radius:12px;border:1px solid var(--ring)" loading="lazy" src="${p.primary}" alt="">
-        </a>
-        ${state.isAdmin ? `<button class="btn danger" data-remove="${idx}" style="margin-top:6px;width:100%">حذف الصورة</button>`:``}
-      `;
-      const img = cell.querySelector("img"); let tried=false;
+      const a = document.createElement("a");
+      a.href = p.primary.replace("export=view","export=download");
+      a.target = "_blank"; a.rel="noopener";
+      a.innerHTML = `<img class="thumb" style="border-radius:12px;border:1px solid var(--ring)" loading="lazy" src="${p.primary}" alt="">`;
+      const img = a.querySelector("img"); let tried=false;
       img.onerror = ()=>{ if(!tried){ tried=true; img.src = p.fallback; } };
-      imagesWrap.appendChild(cell);
+      imagesWrap.appendChild(a);
     });
   }
-  imagesAdmin.style.display = state.isAdmin ? "block" : "none";
   imagesModal.style.display = "flex";
-
-  if(state.isAdmin){
-    imagesWrap.querySelectorAll("[data-remove]").forEach(btn=>{
-      btn.onclick = async ()=>{
-        const idx = +btn.getAttribute("data-remove");
-        const arr = (state.currentCase.images||[]).slice();
-        arr.splice(idx,1);
-        try{
-          await updateDoc(doc(db,"cases",state.currentCase.id), { images: arr });
-          toast("تم حذف الصورة","ok");
-        }catch(e){ toast("فشل الحذف: تحتاج صلاحية كتابة","err"); }
-      };
-    });
-  }
 }
 closeImages.onclick = ()=> imagesModal.style.display="none";
-addImageBtn.onclick = async ()=>{
-  const url = (newImageUrl.value||"").trim();
-  if(!url) return;
-  const arr = (state.currentCase.images||[]).slice(); arr.push(url);
-  try{
-    await updateDoc(doc(db,"cases",state.currentCase.id), { images: arr });
-    newImageUrl.value=""; toast("تمت إضافة الصورة","ok");
-  }catch(e){ toast("تعذّر الإضافة: تحتاج صلاحية كتابة (أدمن)","err"); }
-};
 
-/* ========= Notes Modal ========= */
-const NOTE_TYPES = ["ALL","S","O","A","P","X"];
-function renderNotesFilter(){
-  notesFilterEl.innerHTML = "";
-  NOTE_TYPES.forEach(t=>{
-    const b = document.createElement("button");
-    b.className = "chip" + (state.notesFilter===t?" active":"");
-    b.textContent = t==="ALL"?"الكل":t==="X"?"أخرى":t;
-    b.onclick = ()=>{ state.notesFilter=t; renderNotesList(window.__notesCache||[]); };
-    notesFilterEl.appendChild(b);
-  });
+/* ========= Notes ========= */
+async function updateNotesCount(caseId){
+  const ref = collection(db,"cases",caseId,"notes");
+  const qs = await getDocs(ref); // قراءة فقط
+  const n = qs.size;
+  const btn = document.getElementById(`btn-notes-${caseId}`);
+  if(btn) btn.textContent = `Progress Notes (${n})`;
 }
 async function loadNotes(caseId){
-  // قراءة فقط: لو القواعد لا تسمح هنعرض رسالة
-  try{
-    const ref = collection(db,"cases",caseId,"notes");
-    const qs = await getDocs(query(ref, orderBy("createdAtTS","desc")));
-    return qs.docs.map(d=>({ id:d.id, ...d.data() }));
-  }catch(e){
-    toast("تعذّر قراءة الملاحظات (القواعد الحالية لا تسمح)","err");
-    return [];
-  }
+  const ref = collection(db,"cases",caseId,"notes");
+  const qs = await getDocs(query(ref, orderBy("createdAtTS","desc")));
+  return qs.docs.map(d=>({ id:d.id, ...d.data() }));
 }
 function renderNotesList(list){
-  window.__notesCache = list;
   notesList.innerHTML = "";
-  const filtered = state.notesFilter==="ALL" ? list : list.filter(n=>n.type===state.notesFilter);
-  notesCounter.textContent = `${filtered.length} ملاحظة`;
-  if(!filtered.length){
-    notesList.innerHTML = `<div class="empty">لا توجد ملاحظات.</div>`;
-    return;
-  }
-  filtered.forEach(n=>{
+  notesCounter.textContent = list.length;
+  if(!list.length){ notesList.innerHTML = `<div class="empty">لا توجد ملاحظات بعد.</div>`; return; }
+  list.forEach(n=>{
     const by = n.by||"مجهول";
     const when = n.createdAt ? new Date(n.createdAt).toLocaleString('ar-EG') : "";
-    const fu = n.followUp ? new Date(n.followUp).toLocaleString('ar-EG') : "";
     const div = document.createElement("div");
     div.className = "note";
     div.innerHTML = `
-      <div class="meta">
-        <span><strong>${n.type||"X"}</strong> • ${by}</span>
-        <span>${when}</span>
+      <div style="display:flex;justify-content:space-between;color:#a1a1aa;font-size:12px;margin-bottom:6px">
+        <span>${by}</span><span>${when}</span>
       </div>
-      <div style="margin-top:6px;white-space:pre-wrap">${n.text}</div>
-      ${fu? `<div style="margin-top:6px"><span class="pill" style="border-color:#1e3a8a;color:#93c5fd">متابعة: ${fu}</span></div>`:""}
+      <div style="white-space:pre-wrap">${n.text}</div>
     `;
     notesList.appendChild(div);
   });
@@ -419,33 +337,33 @@ function renderNotesList(list){
 async function openNotesModal(caseId){
   const item = state.cases.find(c=>c.id===caseId); if(!item) return;
   state.currentCase = item;
-  state.notesFilter="ALL"; renderNotesFilter();
   notesList.innerHTML = `<div class="empty">جاري التحميل...</div>`;
   notesModal.style.display = "flex";
-  const list = await loadNotes(caseId);
-  renderNotesList(list);
+  try{
+    const list = await loadNotes(caseId);
+    renderNotesList(list);
+    // حدّث العداد على الكارت
+    updateNotesCount(caseId).catch(()=>{});
+  }catch(e){
+    notesList.innerHTML = `<div class="empty">تعذّر تحميل الملاحظات (قد تكون القواعد لا تسمح).</div>`;
+  }
 }
 closeNotes.onclick = ()=> notesModal.style.display="none";
 addNoteBtn.onclick = async ()=>{
   const text = (noteText.value||"").trim();
   const by   = (noteBy.value||"").trim() || "مجهول";
-  const type = noteType.value;
-  const fu   = noteFollowUp.value ? new Date(noteFollowUp.value).toISOString() : null;
   if(!state.currentCase) return;
-  if(!text) { toast("اكتب الملاحظة أولاً","err"); return; }
-  const nowISO = new Date().toISOString();
+  if(!text){ alert("اكتب الملاحظة أولاً"); return; }
   try{
     await addDoc(collection(db,"cases",state.currentCase.id,"notes"), {
-      text, by, type, followUp: fu,
-      createdAt: nowISO, createdAtTS: Date.now()
+      text, by, createdAt: new Date().toISOString(), createdAtTS: Date.now()
     });
-    noteText.value = ""; noteBy.value=""; noteFollowUp.value="";
+    noteText.value = ""; noteBy.value="";
     const list = await loadNotes(state.currentCase.id);
     renderNotesList(list);
-    toast("تمت إضافة الملاحظة","ok");
+    updateNotesCount(state.currentCase.id).catch(()=>{});
   }catch(e){
-    // ما بنعدّل القواعد دلوقتي: بس بنعرض تنبيه ذكي
-    toast("الملاحظات محجوبة بالوقت الحالي (تحتاج فتح السماح بالكتابة لاحقًا)","err");
+    alert("تعذّر إضافة الملاحظة (قد تحتاج السماح بالكتابة في القواعد لاحقًا).");
   }
 };
 
@@ -479,13 +397,15 @@ cancelAdd.addEventListener("click", ()=>{ addModal.style.display="none"; caseNam
 async function addCase(){
   const name = (caseName.value||"").trim();
   const urls = parseUrls(caseUrls.value);
-  if(!name || !urls.length){ toast("أدخل الاسم وروابط الصور","err"); return; }
+  if(!name || !urls.length){ alert("أدخل الاسم وروابط الصور"); return; }
   const normalizedName = normalizeArabic(name);
   const newRef = doc(collection(db,"cases"));
   try{
     await setDoc(newRef, { name, normalizedName, letter: normalizedName.charAt(0)||"", images: urls, createdAt: new Date().toISOString() });
-    addModal.style.display="none"; caseName.value=""; caseUrls.value=""; toast("تمت إضافة الحالة","ok");
-  }catch(e){ toast("تعذّر إضافة الحالة: تحتاج صلاحية كتابة (أدمن)","err"); }
+    addModal.style.display="none"; caseName.value=""; caseUrls.value="";
+  }catch(e){
+    alert("تعذّر إضافة الحالة (صلاحيات الكتابة للأدمن فقط).");
+  }
 }
 confirmAdd.addEventListener("click", ()=> addCase() );
 
