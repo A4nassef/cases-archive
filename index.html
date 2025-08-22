@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title> أرشيف الحالات</title>
+  <title>أرشيف الحالات</title>
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;800&display=swap" rel="stylesheet">
   <style>
     :root{
@@ -26,7 +26,7 @@
     .letters::-webkit-scrollbar{display:none}
     .chip{flex:0 0 auto;padding:8px 12px;border-radius:999px;font-weight:700;font-size:14px;background:var(--chip);color:#d1d5db;border:1px solid var(--ring);cursor:pointer;user-select:none}
     .chip.active{background:linear-gradient(90deg,#0ea5e9,#22d3ee);color:#001219;border:0;box-shadow:0 6px 18px rgba(14,165,233,.35)}
-    .grid{display:grid;gap:16px;grid-template-columns:repeat(auto-fill,minmax(180px,1fr))}
+    .grid{display:grid;gap:16px;grid-template-columns:repeat(auto-fill,minmax(200px,1fr))}
     .card{position:relative;border-radius:var(--radius);background:linear-gradient(180deg,rgba(17,24,39,.92),rgba(2,6,23,.92));border:1px solid var(--ring);overflow:hidden;box-shadow:var(--shadow);transition:transform .18s,box-shadow .18s,border-color .18s; cursor:pointer;}
     .card:hover{transform:translateY(-4px);box-shadow:0 16px 40px rgba(0,0,0,.5);border-color:#3b82f6}
     .thumb{aspect-ratio:4/3;width:100%;object-fit:cover;display:block;background:#0b1223}
@@ -35,19 +35,25 @@
     .badge{font-size:11px;padding:4px 8px;border-radius:999px;background:#0b1223;color:#93c5fd;border:1px dashed #1f3b69}
     .del{position:absolute;top:8px;left:8px;background:#dc2626;color:#fff;border:0;border-radius:10px;padding:6px 8px;cursor:pointer;display:none}
     .card.admin .del{display:block}
+    .card .topBtns{position:absolute;top:8px;right:8px;display:flex;gap:6px}
     .empty{text-align:center;color:var(--muted);padding:36px 10px;border:1px dashed var(--ring);border-radius:16px;margin-top:8px}
     .footer{margin-top:28px;color:#a1a1aa;font-size:12px;text-align:center}
+
     .modal{position:fixed;inset:0;background:rgba(2,6,23,.6);backdrop-filter:blur(4px);display:none;align-items:center;justify-content:center;padding:16px;z-index:50}
-    .modal .box{width:min(520px,100%);background:#0b1223;border:1px solid var(--ring);border-radius:18px;padding:16px}
+    .modal .box{width:min(640px,100%);max-height:85dvh;overflow:auto;background:#0b1223;border:1px solid var(--ring);border-radius:18px;padding:16px}
     .field{display:flex;flex-direction:column;gap:6px;margin:10px 0}
-    .field input[type="text"], .field input[type="email"], .field input[type="password"]{background:#0b1223;border:1px solid var(--ring);color:#e5e7eb;border-radius:12px;padding:10px 12px}
+    .field input[type="text"], .field textarea, .field input[type="email"], .field input[type="password"]{background:#0b1223;border:1px solid var(--ring);color:#e5e7eb;border-radius:12px;padding:10px 12px}
+    .thumbs{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px}
+    .note{border:1px solid var(--ring);border-radius:12px;padding:8px 10px;margin:6px 0;background:#0c1426}
+    .note .meta{font-size:12px;color:#a1a1aa;justify-content:space-between}
     .login-wrap{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+    .pill{border:1px solid var(--ring);padding:6px 10px;border-radius:999px;font-size:12px;background:#0b1223;color:#d1d5db}
   </style>
 </head>
 <body>
   <div class="container">
     <div class="header">
-      <div class="title"> احلي تحيه ل د هيام اجمل رئيسة قسم أرشيف الحالات</div>
+      <div class="title">أرشيف الحالات</div>
       <div class="login-wrap" id="authArea"></div>
     </div>
 
@@ -68,10 +74,10 @@
     <div id="grid" class="grid" role="list"></div>
     <div id="empty" class="empty" style="display:none">لا توجد نتائج مطابقة حاليًا.</div>
 
-    <div class="footer">الصور من Google Drive/أي استضافة • الإضافة والحذف للأدمن فقط.</div>
+    <div class="footer">الصور (عدة صور للحالة) للأدمن فقط • الملاحظات متاحة للجميع.</div>
   </div>
 
-  <!-- Modal: Add Case -->
+  <!-- Modal: Add Case (name + multiple URLs) -->
   <div class="modal" id="addModal" aria-hidden="true">
     <div class="box">
       <h3 style="margin:0 0 8px;font-weight:800">إضافة حالة جديدة</h3>
@@ -80,10 +86,10 @@
         <input type="text" id="caseName" placeholder="مثال: أحمد علي">
       </div>
       <div class="field">
-        <label>رابط الصورة (Google Drive أو أي استضافة)</label>
-        <input type="text" id="caseUrl" placeholder="الصق رابط المشاركة من Drive هنا">
+        <label>روابط الصور (Google Drive أو أي استضافة)</label>
+        <textarea id="caseUrls" rows="4" placeholder="الصق رابط أو أكتر.. كل رابط في سطر منفصل أو مفصول بفاصلة"></textarea>
         <div style="color:#a1a1aa;font-size:13px">
-          يمكن لصق رابط المشاركة من Drive وسنحوّله تلقائيًا إلى رابط عرض مباشر.
+          نقبل أكتر من صورة. روابط Google Drive هتتحوّل تلقائيًا لعرض مباشر.
         </div>
       </div>
       <div class="row" style="margin-top:8px">
@@ -93,11 +99,47 @@
     </div>
   </div>
 
+  <!-- Modal: Images of a case -->
+  <div class="modal" id="imagesModal" aria-hidden="true">
+    <div class="box">
+      <div class="row" style="justify-content:space-between;align-items:center">
+        <h3 style="margin:0;font-weight:800">صور الحالة</h3>
+        <button class="btn" id="closeImages">إغلاق</button>
+      </div>
+      <div id="imagesWrap" class="thumbs" style="margin-top:10px"></div>
+    </div>
+  </div>
+
+  <!-- Modal: Notes (progress) -->
+  <div class="modal" id="notesModal" aria-hidden="true">
+    <div class="box">
+      <div class="row" style="justify-content:space-between;align-items:center">
+        <h3 style="margin:0;font-weight:800">الملاحظات (Progress Notes)</h3>
+        <button class="btn" id="closeNotes">إغلاق</button>
+      </div>
+
+      <div id="notesList" style="margin-top:10px"></div>
+
+      <div class="field" style="margin-top:12px">
+        <label>الاسم (اختياري)</label>
+        <input type="text" id="noteBy" placeholder="مثال: د. محمد / تمريض / ولي أمر">
+      </div>
+      <div class="field">
+        <label>الملاحظة</label>
+        <textarea id="noteText" rows="3" placeholder="اكتب الملاحظة هنا..."></textarea>
+      </div>
+      <div class="row">
+        <span class="pill" id="notesCounter">0 ملاحظة</span>
+        <button class="btn primary" id="addNoteBtn">إضافة ملاحظة</button>
+      </div>
+    </div>
+  </div>
+
 <script type="module">
 /* ===================== Firebase ===================== */
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-import { getFirestore, collection, doc, setDoc, onSnapshot, query, orderBy, deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { getFirestore, collection, doc, setDoc, onSnapshot, query, orderBy, deleteDoc, addDoc, getDocs } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyAjobzZN78wJhmejQOqa1EGcT7eBQ2RMp0",
@@ -116,24 +158,23 @@ const ARABIC_LETTERS = ["الكل","ا","ب","ت","ث","ج","ح","خ","د","ذ",
 const DIACRITICS = /[\u064B-\u065F\u0670\u06D6-\u06ED]/g;
 const normalizeArabic = s => (s||"").replace(DIACRITICS,"").replace(/[إأآا]/g,"ا").replace(/ى/g,"ي").replace(/ؤ/g,"و").replace(/ئ/g,"ي").trim();
 
-/* يحوّل رابط Google Drive إلى رابط عرض مباشر + بديل تلقائي */
-function toDirectDriveUrl(url){
-  if(!url) return { primary:"", fallback:"" };
-  // /file/d/ID  أو  ?id=ID
+function parseUrls(raw){
+  return (raw||"")
+    .split(/[\n,]+/).map(x=>x.trim()).filter(Boolean);
+}
+/* يحوّل رابط Google Drive إلى عرض مباشر + بديل */
+function drivePair(url){
+  if(!url) return {primary:"", fallback:""};
   let m = url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/) || url.match(/[?&]id=([a-zA-Z0-9_-]+)/);
   if(m){
     const id = m[1];
-    return {
-      primary: `https://drive.google.com/uc?export=view&id=${id}`,
-      fallback: `https://lh3.googleusercontent.com/d/${id}`
-    };
+    return { primary:`https://drive.google.com/uc?export=view&id=${id}`, fallback:`https://lh3.googleusercontent.com/d/${id}` };
   }
-  // مش Drive → استعمله كما هو
-  return { primary:url, fallback:url };
+  return {primary:url, fallback:url};
 }
 
 /* ===================== State + Elements ===================== */
-let state = { letter:"الكل", query:"", isAdmin:false, cases:[] };
+let state = { letter:"الكل", query:"", isAdmin:false, cases:[], currentCase:null };
 
 const gridEl = document.getElementById("grid");
 const emptyEl = document.getElementById("empty");
@@ -143,10 +184,22 @@ const clearBtn = document.getElementById("clearBtn");
 const addBtn = document.getElementById("addBtn");
 const addModal = document.getElementById("addModal");
 const caseName = document.getElementById("caseName");
-const caseUrl  = document.getElementById("caseUrl");
+const caseUrls = document.getElementById("caseUrls");
 const cancelAdd = document.getElementById("cancelAdd");
 const confirmAdd = document.getElementById("confirmAdd");
 const authArea = document.getElementById("authArea");
+
+const imagesModal = document.getElementById("imagesModal");
+const imagesWrap  = document.getElementById("imagesWrap");
+const closeImages = document.getElementById("closeImages");
+
+const notesModal  = document.getElementById("notesModal");
+const closeNotes  = document.getElementById("closeNotes");
+const notesList   = document.getElementById("notesList");
+const noteBy      = document.getElementById("noteBy");
+const noteText    = document.getElementById("noteText");
+const addNoteBtn  = document.getElementById("addNoteBtn");
+const notesCounter= document.getElementById("notesCounter");
 
 /* ===================== UI: Letters ===================== */
 function renderLetters(){
@@ -160,7 +213,7 @@ function renderLetters(){
   });
 }
 
-/* ===================== UI: Grid (مع fallback) ===================== */
+/* ===================== UI: Grid ===================== */
 function renderGrid(){
   const q = normalizeArabic(state.query);
   const filtered = state.cases.filter(x=>{
@@ -174,31 +227,34 @@ function renderGrid(){
   emptyEl.style.display="none";
 
   filtered.forEach(item=>{
-    const urls = toDirectDriveUrl(item.imageUrl);
-    const direct = urls.primary || "";
-    const openHref = direct ? direct.replace("export=view","export=download") : "#";
+    const imgs = Array.isArray(item.images) ? item.images : (item.imageUrl ? [item.imageUrl] : []);
+    const pair  = drivePair(imgs[0] || "");
+    const first = pair.primary || "";
+    const openHref = first ? first.replace("export=view","export=download") : "#";
 
     const card = document.createElement("article");
     card.className = "card" + (state.isAdmin ? " admin" : "");
     card.innerHTML = `
+      <div class="topBtns">
+        <button class="btn" data-images="${item.id}">الصور (${imgs.length||0})</button>
+        <button class="btn" data-notes="${item.id}">ملاحظات</button>
+      </div>
       <a href="${openHref}" target="_blank" rel="noopener" style="text-decoration:none; color:inherit">
-        <img class="thumb" loading="lazy" src="${direct}" alt="${item.name}">
+        <img class="thumb" loading="lazy" src="${first}" alt="${item.name}">
       </a>
-      <button class="del" data-id="${item.id}">حذف</button>
+      <button class="del" data-del="${item.id}">حذف</button>
       <div class="meta">
-        <a href="${openHref}" target="_blank" rel="noopener" class="name" title="${item.name}" style="text-decoration:none; color:inherit">${item.name}</a>
+        <div class="name" title="${item.name}">${item.name}</div>
         <div class="badge">${normalizeArabic(item.name).charAt(0) || ""}</div>
       </div>
     `;
 
-    // جرّب fallback تلقائيًا لو الصورة فشلت
+    // fallback للصورة الأولى
     const img = card.querySelector("img");
     let triedFallback = false;
-    img.onerror = ()=>{
-      if(!triedFallback && urls.fallback && urls.fallback !== direct){
-        triedFallback = true;
-        img.src = urls.fallback;
-        return;
+    img.onerror = ()=> {
+      if(!triedFallback && pair.fallback && pair.fallback!==first){
+        triedFallback = true; img.src = pair.fallback; return;
       }
       img.src = "data:image/svg+xml;utf8," + encodeURIComponent(
         `<svg xmlns='http://www.w3.org/2000/svg' width='600' height='400'>
@@ -212,18 +268,102 @@ function renderGrid(){
     gridEl.appendChild(card);
   });
 
+  // أزرار الحذف (أدمن) + الصور + الملاحظات
   if(state.isAdmin){
-    gridEl.querySelectorAll(".del").forEach(btn=>{
+    gridEl.querySelectorAll("[data-del]").forEach(btn=>{
       btn.addEventListener("click", async (e)=>{
-        const id = e.currentTarget.getAttribute("data-id");
+        const id = e.currentTarget.getAttribute("data-del");
         const item = state.cases.find(c=>c.id===id);
         if(!item) return;
-        if(!confirm(`مسح "${item.name}"؟`)) return;
+        if(!confirm(`مسح الحالة "${item.name}" بكل صورها وملاحظاتها؟`)) return;
         await deleteDoc(doc(db,"cases",id));
       });
     });
   }
+  gridEl.querySelectorAll("[data-images]").forEach(btn=>{
+    btn.addEventListener("click", (e)=>{
+      const id = e.currentTarget.getAttribute("data-images");
+      openImagesModal(id);
+    });
+  });
+  gridEl.querySelectorAll("[data-notes]").forEach(btn=>{
+    btn.addEventListener("click", (e)=>{
+      const id = e.currentTarget.getAttribute("data-notes");
+      openNotesModal(id);
+    });
+  });
 }
+
+/* ===================== Images Modal ===================== */
+function openImagesModal(caseId){
+  const item = state.cases.find(c=>c.id===caseId); if(!item) return;
+  state.currentCase = item;
+  imagesWrap.innerHTML = "";
+  const imgs = Array.isArray(item.images) ? item.images : (item.imageUrl ? [item.imageUrl] : []);
+  if(!imgs.length){
+    imagesWrap.innerHTML = `<div class="empty">لا توجد صور مضافة لهذه الحالة.</div>`;
+  }else{
+    imgs.forEach(u=>{
+      const p = drivePair(u);
+      const a = document.createElement("a");
+      a.href = p.primary.replace("export=view","export=download");
+      a.target = "_blank"; a.rel="noopener";
+      a.innerHTML = `<img class="thumb" style="border-radius:12px;border:1px solid var(--ring)" loading="lazy" src="${p.primary}" alt="">`;
+      const img = a.querySelector("img");
+      let tried = false;
+      img.onerror = ()=>{ if(!tried){ tried=true; img.src = p.fallback; } };
+      imagesWrap.appendChild(a);
+    });
+  }
+  imagesModal.style.display = "flex";
+}
+closeImages.onclick = ()=>{ imagesModal.style.display="none"; };
+
+/* ===================== Notes Modal ===================== */
+async function loadNotes(caseId){
+  const ref = collection(db,"cases",caseId,"notes");
+  const qs = await getDocs(query(ref, orderBy("createdAtTS","desc")));
+  return qs.docs.map(d=>({ id:d.id, ...d.data() }));
+}
+function renderNotesList(list){
+  notesList.innerHTML = "";
+  notesCounter.textContent = `${list.length} ملاحظة`;
+  if(!list.length){
+    notesList.innerHTML = `<div class="empty">لا توجد ملاحظات بعد.</div>`;
+    return;
+  }
+  list.forEach(n=>{
+    const div = document.createElement("div");
+    div.className = "note";
+    div.innerHTML = `
+      <div class="meta"><span>${n.by||"مجهول"}</span><span>${new Date(n.createdAt).toLocaleString('ar-EG')}</span></div>
+      <div style="margin-top:6px;white-space:pre-wrap">${n.text}</div>
+    `;
+    notesList.appendChild(div);
+  });
+}
+async function openNotesModal(caseId){
+  const item = state.cases.find(c=>c.id===caseId); if(!item) return;
+  state.currentCase = item;
+  notesList.innerHTML = `<div class="empty">جاري التحميل...</div>`;
+  notesModal.style.display = "flex";
+  const list = await loadNotes(caseId);
+  renderNotesList(list);
+}
+closeNotes.onclick = ()=>{ notesModal.style.display="none"; };
+addNoteBtn.onclick = async ()=>{
+  const text = (noteText.value||"").trim();
+  const by   = (noteBy.value||"").trim() || "مجهول";
+  if(!state.currentCase) return;
+  if(!text) { alert("اكتب الملاحظة أولاً"); return; }
+  const nowISO = new Date().toISOString();
+  await addDoc(collection(db,"cases",state.currentCase.id,"notes"), {
+    text, by, createdAt: nowISO, createdAtTS: Date.now()
+  });
+  noteText.value = ""; // فضّي
+  const list = await loadNotes(state.currentCase.id);
+  renderNotesList(list);
+};
 
 /* ===================== Search + URL ===================== */
 searchInput.addEventListener("input", e=>{ state.query = e.target.value; updateURL(); renderGrid(); });
@@ -245,16 +385,16 @@ function updateURL(){
 
 /* ===================== Auth UI ===================== */
 function renderAuthArea(user){
-  authArea.innerHTML = "";
+  const area = document.getElementById("authArea");
+  area.innerHTML = "";
   if(user){
     state.isAdmin = true;
     const email = document.createElement("div");
     email.textContent = user.email;
     const outBtn = document.createElement("button");
-    outBtn.className = "btn";
-    outBtn.textContent = "تسجيل خروج";
+    outBtn.className = "btn"; outBtn.textContent = "تسجيل خروج";
     outBtn.onclick = ()=>signOut(auth);
-    authArea.append(email, outBtn);
+    area.append(email, outBtn);
     addBtn.style.display = "inline-block";
   }else{
     state.isAdmin = false;
@@ -269,32 +409,29 @@ function renderAuthArea(user){
       try{ await signInWithEmailAndPassword(auth, email.value, pass.value); }
       catch(err){ alert("خطأ في تسجيل الدخول: " + (err?.message || "")); }
     };
-    authArea.append(email, pass, inBtn);
+    area.append(email, pass, inBtn);
   }
   renderGrid();
 }
 onAuthStateChanged(auth, renderAuthArea);
 
-/* ===================== Add Case (name + URL) ===================== */
+/* ===================== Add Case (name + multiple URLs) ===================== */
 addBtn.addEventListener("click", ()=>{ addModal.style.display="flex"; caseName.focus(); });
-document.addEventListener("keydown",(e)=>{ if(e.key==="Escape") addModal.style.display="none"; });
-cancelAdd.addEventListener("click", ()=>{ addModal.style.display="none"; caseName.value=""; caseUrl.value=""; });
+document.addEventListener("keydown",(e)=>{ if(e.key==="Escape"){ addModal.style.display="none"; imagesModal.style.display="none"; notesModal.style.display="none"; } });
+cancelAdd.addEventListener("click", ()=>{ addModal.style.display="none"; caseName.value=""; caseUrls.value=""; });
 
 async function addCase(){
   const name = (caseName.value||"").trim();
-  let url = (caseUrl.value||"").trim();
-  if(!name || !url){ alert("من فضلك أدخل الاسم والرابط."); return; }
-  const d = toDirectDriveUrl(url);  // هنخزن الأصلي اللي منه نقدر نولّد روابط
+  const urlsRaw = (caseUrls.value||"").trim();
+  if(!name || !urlsRaw){ alert("من فضلك أدخل الاسم وروابط الصور."); return; }
+  const urls = parseUrls(urlsRaw);
   const normalizedName = normalizeArabic(name);
   const newRef = doc(collection(db,"cases"));
   await setDoc(newRef, {
-    name,
-    normalizedName,
-    letter: normalizedName.charAt(0)||"",
-    imageUrl: url,          // نخزن الرابط كما أُدخل (لو Drive الكود هيحوّل عند العرض)
-    createdAt: new Date().toISOString()
+    name, normalizedName, letter: normalizedName.charAt(0)||"",
+    images: urls, createdAt: new Date().toISOString()
   });
-  addModal.style.display="none"; caseName.value=""; caseUrl.value="";
+  addModal.style.display="none"; caseName.value=""; caseUrls.value="";
 }
 confirmAdd.addEventListener("click", async ()=>{ try{ await addCase(); }catch(e){ alert("تعذر الحفظ: "+(e?.message||"")); } });
 
