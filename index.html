@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -9,8 +8,7 @@
   <style>
     :root{
       --bg:#0f172a; --card:#0b1223; --ring:#1f2937; --text:#e5e7eb; --muted:#94a3b8;
-      --chip:#111827; --chip-active:#0ea5e9; --accent:#22d3ee; --accent-2:#a78bfa;
-      --radius:18px; --shadow:0 10px 30px rgba(0,0,0,.35);
+      --chip:#111827; --accent:#22d3ee; --accent-2:#a78bfa; --radius:18px; --shadow:0 10px 30px rgba(0,0,0,.35);
     }
     *{box-sizing:border-box}
     body{margin:0;font-family:"Cairo",system-ui; background:radial-gradient(1200px 800px at 80% -10%, #1e293b 0%, #0b1223 45%, #0f172a 100%);color:var(--text);min-height:100dvh}
@@ -39,23 +37,19 @@
     .card.admin .del{display:block}
     .empty{text-align:center;color:var(--muted);padding:36px 10px;border:1px dashed var(--ring);border-radius:16px;margin-top:8px}
     .footer{margin-top:28px;color:var(--muted);font-size:12px;text-align:center}
-    /* Modal */
+
     .modal{position:fixed;inset:0;background:rgba(2,6,23,.6);backdrop-filter:blur(4px);display:none;align-items:center;justify-content:center;padding:16px;z-index:50}
     .modal .box{width:min(520px,100%);background:#0b1223;border:1px solid var(--ring);border-radius:18px;padding:16px}
     .field{display:flex;flex-direction:column;gap:6px;margin:10px 0}
     .field input[type="text"], .field input[type="email"], .field input[type="password"]{background:#0b1223;border:1px solid var(--ring);color:var(--text);border-radius:12px;padding:10px 12px}
-    .hl{height:1px;background:var(--ring);margin:10px 0}
     .login-wrap{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
-    .note{color:#a1a1aa;font-size:13px}
   </style>
 </head>
 <body>
   <div class="container">
     <div class="header">
       <div class="title">أرشيف الحالات</div>
-      <div class="login-wrap" id="authArea">
-        <!-- يتم ملؤها بالجافاسكربت حسب حالة الدخول -->
-      </div>
+      <div class="login-wrap" id="authArea"></div>
     </div>
 
     <div class="controls">
@@ -75,10 +69,10 @@
     <div id="grid" class="grid" role="list"></div>
     <div id="empty" class="empty" style="display:none">لا توجد نتائج مطابقة حاليًا.</div>
 
-    <div class="footer">عرض للجميع • الإضافة والحذف بعد تسجيل دخول الأدمن • فلترة عربية + بحث.</div>
+    <div class="footer">الصور من Google Drive/أي استضافة • الإضافة والحذف للأدمن فقط.</div>
   </div>
 
-  <!-- Modal: Add Case -->
+  <!-- Modal: Add Case (name + image URL) -->
   <div class="modal" id="addModal" aria-hidden="true">
     <div class="box">
       <h3 style="margin:0 0 8px;font-weight:800">إضافة حالة جديدة</h3>
@@ -87,12 +81,13 @@
         <input type="text" id="caseName" placeholder="مثال: أحمد علي">
       </div>
       <div class="field">
-        <label>الصورة</label>
-        <input type="file" id="caseImage" accept="image/*">
-        <div class="note">يتم رفع الصورة إلى Firebase Storage تلقائيًا.</div>
+        <label>رابط الصورة (Google Drive أو أي استضافة)</label>
+        <input type="text" id="caseUrl" placeholder="الصق رابط المشاركة من Drive هنا">
+        <div style="color:#a1a1aa;font-size:13px">
+          يمكن لصق رابط المشاركة من Drive وسنحوّله تلقائيًا إلى رابط عرض مباشر.
+        </div>
       </div>
-      <div class="hl"></div>
-      <div class="row">
+      <div class="row" style="margin-top:8px">
         <button class="btn" id="cancelAdd">إلغاء</button>
         <button class="btn primary" id="confirmAdd">حفظ</button>
       </div>
@@ -101,9 +96,6 @@
 
 <script type="module">
 /* ===================== Firebase Setup ===================== */
-// 1) افتح https://console.firebase.google.com وأنشئ مشروع جديد
-// 2) فعّل Authentication (Email/Password)، Firestore، و Storage
-// 3) انسخ الإعدادات هنا بدل PLACEHOLDER
 const firebaseConfig = {
   apiKey: "YOUR_API_KEY",
   authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
@@ -116,20 +108,27 @@ const firebaseConfig = {
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import { getFirestore, collection, doc, setDoc, onSnapshot, query, orderBy, deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js";
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
-const storage = getStorage(app);
 
-/* ===================== Arabic Helpers ===================== */
+/* ===================== Helpers ===================== */
 const ARABIC_LETTERS = ["الكل","ا","ب","ت","ث","ج","ح","خ","د","ذ","ر","ز","س","ش","ص","ض","ط","ظ","ع","غ","ف","ق","ك","ل","م","ن","ه","و","ي"];
 const DIACRITICS = /[\u064B-\u065F\u0670\u06D6-\u06ED]/g;
-const normalizeArabic = s => (s||"")
- .replace(DIACRITICS,"")
- .replace(/[إأآا]/g,"ا").replace(/ى/g,"ي").replace(/ؤ/g,"و").replace(/ئ/g,"ي")
- .trim();
+const normalizeArabic = s => (s||"").replace(DIACRITICS,"").replace(/[إأآا]/g,"ا").replace(/ى/g,"ي").replace(/ؤ/g,"و").replace(/ئ/g,"ي").trim();
+
+/* يحول رابط Google Drive إلى رابط عرض مباشر */
+function toDirectDriveUrl(url){
+  if(!url) return "";
+  // /file/d/FILE_ID/...
+  let m = url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
+  if(m) return `https://drive.google.com/uc?export=view&id=${m[1]}`;
+  // open?id=FILE_ID
+  m = url.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+  if(m) return `https://drive.google.com/uc?export=view&id=${m[1]}`;
+  return url; // لو مش Drive، نرجّعها كما هي (Imgur/Cloudinary... إلخ)
+}
 
 let state = { letter:"الكل", query:"", isAdmin:false, cases:[] };
 
@@ -141,12 +140,12 @@ const clearBtn = document.getElementById("clearBtn");
 const addBtn = document.getElementById("addBtn");
 const addModal = document.getElementById("addModal");
 const caseName = document.getElementById("caseName");
-const caseImage = document.getElementById("caseImage");
+const caseUrl  = document.getElementById("caseUrl");
 const cancelAdd = document.getElementById("cancelAdd");
 const confirmAdd = document.getElementById("confirmAdd");
 const authArea = document.getElementById("authArea");
 
-/* ===================== UI: Letters ===================== */
+/* = UI: Letters = */
 function renderLetters(){
   lettersBar.innerHTML = "";
   ARABIC_LETTERS.forEach(l=>{
@@ -158,7 +157,7 @@ function renderLetters(){
   });
 }
 
-/* ===================== UI: Grid ===================== */
+/* = UI: Grid = */
 function renderGrid(){
   const q = normalizeArabic(state.query);
   const filtered = state.cases.filter(x=>{
@@ -192,20 +191,13 @@ function renderGrid(){
         const item = state.cases.find(c=>c.id===id);
         if(!item) return;
         if(!confirm(`مسح "${item.name}"؟`)) return;
-        try{
-          if(item.storagePath){
-            await deleteObject(ref(storage, item.storagePath));
-          }
-        }catch(err){
-          console.warn("Storage delete warning:", err?.message);
-        }
         await deleteDoc(doc(db,"cases",id));
       });
     });
   }
 }
 
-/* ===================== Search + URL ===================== */
+/* = Search + URL = */
 searchInput.addEventListener("input", e=>{ state.query = e.target.value; updateURL(); renderGrid(); });
 clearBtn.addEventListener("click", ()=>{ searchInput.value=""; state.query=""; updateURL(); renderGrid(); searchInput.focus(); });
 
@@ -223,7 +215,7 @@ function updateURL(){
   history.replaceState(null,"", newHash ? `#${newHash}` : location.pathname+location.search);
 }
 
-/* ===================== Auth UI ===================== */
+/* = Auth UI = */
 function renderAuthArea(user){
   authArea.innerHTML = "";
   if(user){
@@ -240,12 +232,12 @@ function renderAuthArea(user){
     state.isAdmin = false;
     addBtn.style.display = "none";
     const email = document.createElement("input");
-    email.type = "email"; email.placeholder = "بريد الأدمن"; email.className="field-in btn"; email.style.minWidth="210px";
+    email.type = "email"; email.placeholder = "بريد الأدمن"; email.className="btn"; email.style.minWidth="210px";
     const pass = document.createElement("input");
-    pass.type = "password"; pass.placeholder = "كلمة المرور"; pass.className="field-in btn"; pass.style.minWidth="160px";
+    pass.type = "password"; pass.placeholder = "كلمة المرور"; pass.className="btn"; pass.style.minWidth="160px";
     const inBtn = document.createElement("button");
     inBtn.className="btn primary"; inBtn.textContent="تسجيل دخول";
-    inBtn.onclick = async ()=>{
+    inBtn.onclick = async ()=> {
       try{ await signInWithEmailAndPassword(auth, email.value, pass.value); }
       catch(err){ alert("خطأ في تسجيل الدخول: " + (err?.message || "")); }
     };
@@ -255,40 +247,29 @@ function renderAuthArea(user){
 }
 onAuthStateChanged(auth, renderAuthArea);
 
-/* ===================== Add Case ===================== */
+/* = Add Case (name + URL) = */
 addBtn.addEventListener("click", ()=>{ addModal.style.display="flex"; caseName.focus(); });
-cancelAdd.addEventListener("click", ()=>{ addModal.style.display="none"; caseName.value=""; caseImage.value=""; });
+cancelAdd.addEventListener("click", ()=>{ addModal.style.display="none"; caseName.value=""; caseUrl.value=""; });
 
-confirmAdd.addEventListener("click", async ()=>{
+async function addCase(){
   const name = (caseName.value||"").trim();
-  const file = caseImage.files?.[0];
-  if(!name || !file){ alert("من فضلك أدخل الاسم واختر الصورة."); return; }
-  try{
-    // نحضر ID مسبقًا علشان نخزن الصورة بمسار يعتمد عليه
-    const newRef = doc(collection(db,"cases"));
-    const id = newRef.id;
-    const path = `cases/${id}-${file.name.replace(/\s+/g,"_")}`;
-    const storageRef = ref(storage, path);
-    await uploadBytes(storageRef, file);
-    const url = await getDownloadURL(storageRef);
-    const normalizedName = normalizeArabic(name);
-    await setDoc(newRef, {
-      name, normalizedName, letter: normalizedName.charAt(0) || "",
-      imageUrl: url, storagePath: path, createdAt: new Date().toISOString()
-    });
-    addModal.style.display="none"; caseName.value=""; caseImage.value="";
-  }catch(err){
-    alert("تعذر الحفظ: " + (err?.message || ""));
-  }
-});
+  let url = (caseUrl.value||"").trim();
+  if(!name || !url){ alert("من فضلك أدخل الاسم والرابط."); return; }
+  url = toDirectDriveUrl(url);
+  const newRef = doc(collection(db,"cases"));
+  const normalizedName = normalizeArabic(name);
+  await setDoc(newRef, { name, normalizedName, letter: normalizedName.charAt(0)||"", imageUrl: url, createdAt: new Date().toISOString() });
+  addModal.style.display="none"; caseName.value=""; caseUrl.value="";
+}
+confirmAdd.addEventListener("click", async ()=>{ try{ await addCase(); }catch(e){ alert("تعذر الحفظ: "+(e?.message||"")); } });
 
-/* ===================== Live Data ===================== */
+/* = Live Data = */
 onSnapshot(query(collection(db,"cases"), orderBy("normalizedName")), (snap)=>{
   state.cases = snap.docs.map(d=>({ id:d.id, ...d.data() }));
   renderGrid();
 });
 
-/* ===================== Init ===================== */
+/* = Init = */
 readURL(); renderLetters(); renderGrid();
 </script>
 </body>
