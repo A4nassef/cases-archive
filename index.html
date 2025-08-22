@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>أرشيف الحالات</title>
+  <title>   تحية ل د هيام احلي و اجمل رئيسة قسم أرشيف الحالات</title>
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;800&display=swap" rel="stylesheet">
   <style>
     :root{
@@ -40,7 +40,7 @@
     .modal{position:fixed;inset:0;background:rgba(2,6,23,.6);backdrop-filter:blur(4px);display:none;align-items:center;justify-content:center;padding:16px;z-index:50}
     .modal .box{width:min(520px,100%);background:#0b1223;border:1px solid var(--ring);border-radius:18px;padding:16px}
     .field{display:flex;flex-direction:column;gap:6px;margin:10px 0}
-    .field input[type="text"], .field input[type="email"], .field input[type="password"]{background:#0b1223;border:1px solid var(--ring);color:var(--text);border-radius:12px;padding:10px 12px}
+    .field input[type="text"], .field input[type="email"], .field input[type="password"]{background:#0b1223;border:1px solid var(--ring);color:#e5e7eb;border-radius:12px;padding:10px 12px}
     .login-wrap{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
   </style>
 </head>
@@ -71,7 +71,7 @@
     <div class="footer">الصور من Google Drive/أي استضافة • الإضافة والحذف للأدمن فقط.</div>
   </div>
 
-  <!-- Modal: Add Case (name + URL) -->
+  <!-- Modal: Add Case -->
   <div class="modal" id="addModal" aria-hidden="true">
     <div class="box">
       <h3 style="margin:0 0 8px;font-weight:800">إضافة حالة جديدة</h3>
@@ -115,14 +115,21 @@ const db = getFirestore(app);
 const ARABIC_LETTERS = ["الكل","ا","ب","ت","ث","ج","ح","خ","د","ذ","ر","ز","س","ش","ص","ض","ط","ظ","ع","غ","ف","ق","ك","ل","م","ن","ه","و","ي"];
 const DIACRITICS = /[\u064B-\u065F\u0670\u06D6-\u06ED]/g;
 const normalizeArabic = s => (s||"").replace(DIACRITICS,"").replace(/[إأآا]/g,"ا").replace(/ى/g,"ي").replace(/ؤ/g,"و").replace(/ئ/g,"ي").trim();
-/* يحول رابط Google Drive إلى رابط عرض مباشر */
+
+/* يحوّل رابط Google Drive إلى رابط عرض مباشر + بديل تلقائي */
 function toDirectDriveUrl(url){
-  if(!url) return "";
-  let m = url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
-  if(m) return `https://drive.google.com/uc?export=view&id=${m[1]}`;
-  m = url.match(/[?&]id=([a-zA-Z0-9_-]+)/);
-  if(m) return `https://drive.google.com/uc?export=view&id=${m[1]}`;
-  return url;
+  if(!url) return { primary:"", fallback:"" };
+  // /file/d/ID  أو  ?id=ID
+  let m = url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/) || url.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+  if(m){
+    const id = m[1];
+    return {
+      primary: `https://drive.google.com/uc?export=view&id=${id}`,
+      fallback: `https://lh3.googleusercontent.com/d/${id}`
+    };
+  }
+  // مش Drive → استعمله كما هو
+  return { primary:url, fallback:url };
 }
 
 /* ===================== State + Elements ===================== */
@@ -153,7 +160,7 @@ function renderLetters(){
   });
 }
 
-/* ===================== UI: Grid (المعدّلة) ===================== */
+/* ===================== UI: Grid (مع fallback) ===================== */
 function renderGrid(){
   const q = normalizeArabic(state.query);
   const filtered = state.cases.filter(x=>{
@@ -167,12 +174,12 @@ function renderGrid(){
   emptyEl.style.display="none";
 
   filtered.forEach(item=>{
+    const urls = toDirectDriveUrl(item.imageUrl);
+    const direct = urls.primary || "";
+    const openHref = direct ? direct.replace("export=view","export=download") : "#";
+
     const card = document.createElement("article");
     card.className = "card" + (state.isAdmin ? " admin" : "");
-
-    const direct = toDirectDriveUrl(item.imageUrl) || item.imageUrl;
-    const openHref = direct.replace("export=view","export=download");
-
     card.innerHTML = `
       <a href="${openHref}" target="_blank" rel="noopener" style="text-decoration:none; color:inherit">
         <img class="thumb" loading="lazy" src="${direct}" alt="${item.name}">
@@ -184,9 +191,15 @@ function renderGrid(){
       </div>
     `;
 
-    // Placeholder لو الصورة فشلت
+    // جرّب fallback تلقائيًا لو الصورة فشلت
     const img = card.querySelector("img");
+    let triedFallback = false;
     img.onerror = ()=>{
+      if(!triedFallback && urls.fallback && urls.fallback !== direct){
+        triedFallback = true;
+        img.src = urls.fallback;
+        return;
+      }
       img.src = "data:image/svg+xml;utf8," + encodeURIComponent(
         `<svg xmlns='http://www.w3.org/2000/svg' width='600' height='400'>
            <rect width='100%' height='100%' fill='#0b1223'/>
@@ -271,10 +284,16 @@ async function addCase(){
   const name = (caseName.value||"").trim();
   let url = (caseUrl.value||"").trim();
   if(!name || !url){ alert("من فضلك أدخل الاسم والرابط."); return; }
-  url = toDirectDriveUrl(url);
-  const newRef = doc(collection(db,"cases"));
+  const d = toDirectDriveUrl(url);  // هنخزن الأصلي اللي منه نقدر نولّد روابط
   const normalizedName = normalizeArabic(name);
-  await setDoc(newRef, { name, normalizedName, letter: normalizedName.charAt(0)||"", imageUrl: url, createdAt: new Date().toISOString() });
+  const newRef = doc(collection(db,"cases"));
+  await setDoc(newRef, {
+    name,
+    normalizedName,
+    letter: normalizedName.charAt(0)||"",
+    imageUrl: url,          // نخزن الرابط كما أُدخل (لو Drive الكود هيحوّل عند العرض)
+    createdAt: new Date().toISOString()
+  });
   addModal.style.display="none"; caseName.value=""; caseUrl.value="";
 }
 confirmAdd.addEventListener("click", async ()=>{ try{ await addCase(); }catch(e){ alert("تعذر الحفظ: "+(e?.message||"")); } });
