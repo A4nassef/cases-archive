@@ -10,9 +10,10 @@
       --bg:#0f172a; --card:#0b1223; --ring:#1f2937; --text:#e5e7eb; --muted:#94a3b8;
       --chip:#111827; --accent:#22d3ee; --accent-2:#a78bfa; --radius:18px; --shadow:0 10px 30px rgba(0,0,0,.35);
       --danger:#dc2626;
+      --note:#a5d8ff; --note-line:#7cc0ff; --note-text:#0b1223;
     }
     *{box-sizing:border-box}
-    body{margin:0;font-family:"Cairo",system-ui; background:radial-gradient(1200px 800px at 80% -10%, #1e293b 0%, #0b1223 45%, #0f172a 100%);color:var(--text);min-height:100dvh}
+    body{margin:0;font-family:"Cairo",system-ui;background:radial-gradient(1200px 800px at 80% -10%, #1e293b 0%, #0b1223 45%, #0f172a 100%);color:var(--text);min-height:100dvh}
     .container{max-width:1120px;margin:0 auto;padding:24px 16px 80px}
     .header{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:10px}
     .title{font-size:clamp(22px,2.6vw,30px);font-weight:800;background:linear-gradient(90deg,var(--accent),var(--accent-2));-webkit-background-clip:text;background-clip:text;color:transparent}
@@ -29,7 +30,7 @@
     .chip{flex:0 0 auto;padding:8px 12px;border-radius:999px;font-weight:700;font-size:14px;background:var(--chip);color:#d1d5db;border:1px solid var(--ring);cursor:pointer;user-select:none}
     .chip.active{background:linear-gradient(90deg,#0ea5e9,#22d3ee);color:#001219;border:0;box-shadow:0 6px 18px rgba(14,165,233,.35)}
     .grid{display:grid;gap:16px;grid-template-columns:repeat(auto-fill,minmax(200px,1fr))}
-    .card{position:relative;border-radius:var(--radius);background:linear-gradient(180deg,rgba(17,24,39,.92),rgba(2,6,23,.92));border:1px solid var(--ring);overflow:hidden;box-shadow:var(--shadow);transition:transform .18s,box-shadow .18s,border-color .18s; cursor:pointer;}
+    .card{position:relative;border-radius:var(--radius);background:linear-gradient(180deg,rgba(17,24,39,.92),rgba(2,6,23,.92));border:1px solid var(--ring);overflow:hidden;box-shadow:var(--shadow);transition:transform .18s,box-shadow .18s,border-color .18s}
     .card:hover{transform:translateY(-4px);box-shadow:0 16px 40px rgba(0,0,0,.5);border-color:#3b82f6}
     .thumb{aspect-ratio:4/3;width:100%;object-fit:cover;display:block;background:#0b1223}
     .meta{padding:10px 12px 12px;display:flex;align-items:center;justify-content:space-between;gap:8px}
@@ -42,35 +43,26 @@
     .footer{margin-top:28px;color:#a1a1aa;font-size:12px;text-align:center}
     .pill{border:1px solid var(--ring);padding:6px 10px;border-radius:999px;font-size:12px;background:#0b1223;color:#d1d5db}
 
-    /* ==== المودالات ==== */
+    /* Modals */
     .modal{position:fixed;inset:0;background:rgba(2,6,23,.6);backdrop-filter:blur(4px);display:none;align-items:center;justify-content:center;padding:16px;z-index:50}
-    .modal .box{width:min(720px,100%);max-height:85dvh;overflow:auto;background:#0b1223;border:1px solid var(--ring);border-radius:18px;padding:16px}
+    .modal .box{width:min(760px,100%);max-height:85dvh;overflow:auto;background:#0b1223;border:1px solid var(--ring);border-radius:18px;padding:16px}
     .field{display:flex;flex-direction:column;gap:6px;margin:10px 0}
     .field input[type="text"], .field textarea, .field input[type="email"], .field input[type="password"]{background:#0b1223;border:1px solid var(--ring);color:#e5e7eb;border-radius:12px;padding:10px 12px}
     .thumbs{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px}
 
-    /* ==== كروت الملاحظات (لبني فاتح) ==== */
-    .note{
-      background:#a5d8ff;         /* لبني فاتح */
-      color:#0b1223;               /* نص غامق */
-      border:1px solid #7cc0ff;    /* إطار ناعم */
-      border-radius:12px;
-      padding:12px 14px;
-      margin:8px 0;
-      font-size:16px;              /* أكبر سنة */
-      font-weight:700;             /* أوضح */
-    }
-    .note .meta{
-      display:flex;justify-content:space-between;
-      color:#1e293b;
-      font-size:13.5px;
-      margin-bottom:6px;
-      font-weight:700;
-    }
-    .note .text{
-      white-space:pre-wrap;
-      line-height:1.65;
-    }
+    /* Notes (light blue cards) */
+    .note{background:var(--note);color:var(--note-text);border:1px solid var(--note-line);border-radius:12px;padding:12px 14px;margin:8px 0;font-size:16px;font-weight:700}
+    .note .meta{display:flex;justify-content:space-between;color:#1e293b;font-size:13.5px;margin-bottom:6px;font-weight:700}
+    .note .text{white-space:pre-wrap;line-height:1.65}
+
+    /* Fullscreen viewer */
+    .viewer{position:fixed;inset:0;background:rgba(0,0,0,.9);display:none;align-items:center;justify-content:center;z-index:60}
+    .viewer img{max-width:96vw;max-height:92vh;object-fit:contain;border-radius:12px}
+    .nav{position:fixed;top:50%;transform:translateY(-50%);font-size:26px;color:#fff;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.2);border-radius:999px;width:44px;height:44px;display:flex;align-items:center;justify-content:center;cursor:pointer;user-select:none}
+    .nav:hover{background:rgba(255,255,255,.14)}
+    .nav.prev{right:auto;left:14px}
+    .nav.next{left:auto;right:14px}
+    .viewer .close{position:fixed;top:14px;right:14px}
   </style>
 </head>
 <body>
@@ -97,7 +89,7 @@
     <div id="grid" class="grid" role="list"></div>
     <div id="empty" class="empty" style="display:none">لا توجد نتائج مطابقة حاليًا.</div>
 
-    <div class="footer">الصور المتعددة للأدمن فقط • <strong>Progress Notes</strong> متاحة للجميع للإضافة.</div>
+    <div class="footer">الصور تُعرض داخل الصفحة مباشرة • الملاحظات متاحة للجميع • إدارة الحالات للأدمن.</div>
   </div>
 
   <!-- إضافة حالة -->
@@ -107,12 +99,9 @@
       <div class="field"><label>الاسم</label><input type="text" id="caseName" placeholder="مثال: أحمد علي"></div>
       <div class="field">
         <label>روابط الصور (كل رابط في سطر)</label>
-        <textarea id="caseUrls" rows="4" placeholder="الصق رابط أو أكثر.. كل رابط في سطر"></textarea>
+        <textarea id="caseUrls" rows="4" placeholder="الصق رابط أو أكثر.. Google Drive / Dropbox / OneDrive (كل رابط في سطر)"></textarea>
       </div>
-      <div class="row" style="margin-top:8px">
-        <button class="btn" id="cancelAdd">إلغاء</button>
-        <button class="btn primary" id="confirmAdd">حفظ</button>
-      </div>
+      <div class="row" style="margin-top:8px"><button class="btn" id="cancelAdd">إلغاء</button><button class="btn primary" id="confirmAdd">حفظ</button></div>
     </div>
   </div>
 
@@ -127,6 +116,14 @@
     </div>
   </div>
 
+  <!-- عارض الصور بملء الشاشة -->
+  <div class="viewer" id="viewer">
+    <button class="btn close" id="viewerClose">إغلاق</button>
+    <div class="nav prev" id="prevBtn">‹</div>
+    <img id="viewerImg" referrerpolicy="no-referrer" alt="">
+    <div class="nav next" id="nextBtn">›</div>
+  </div>
+
   <!-- مودال الملاحظات -->
   <div class="modal" id="notesModal" aria-hidden="true">
     <div class="box">
@@ -134,9 +131,7 @@
         <h3 style="margin:0;font-weight:800">Progress Notes</h3>
         <button class="btn" id="closeNotes">إغلاق</button>
       </div>
-
       <div id="notesList" style="margin-top:10px"></div>
-
       <div class="field" style="margin-top:12px">
         <label>الاسم (اختياري)</label>
         <input type="text" id="noteBy" placeholder="مثال: د. محمد / تمريض / ولي أمر">
@@ -153,7 +148,7 @@
   </div>
 
 <script type="module">
-/* ========= Firebase ========= */
+/* ========= Firebase (بدون Storage) ========= */
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import { getFirestore, collection, doc, setDoc, onSnapshot, query, orderBy, deleteDoc, addDoc, getDocs } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
@@ -175,16 +170,35 @@ const ARABIC_LETTERS = ["الكل","ا","ب","ت","ث","ج","ح","خ","د","ذ",
 const DIACRITICS = /[\u064B-\u065F\u06D6-\u06ED]/g;
 const normalizeArabic = s => (s||"").replace(DIACRITICS,"").replace(/[إأآا]/g,"ا").replace(/ى/g,"ي").replace(/ؤ/g,"و").replace(/ئ/g,"ي").trim();
 const parseUrls = raw => (raw||"").split(/\n+/).map(x=>x.trim()).filter(Boolean);
-/* Google Drive: primary + fallback */
-function drivePair(url){
-  if(!url) return {primary:"", fallback:""};
+
+/* نحول الروابط لعرض مباشر (بدون تنزيل) + Fallback */
+function toDirectView(url){
+  if(!url) return "";
+  // Google Drive
   let m = url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/) || url.match(/[?&]id=([a-zA-Z0-9_-]+)/);
-  if(m){ const id=m[1]; return {primary:`https://drive.google.com/uc?export=view&id=${id}`, fallback:`https://lh3.googleusercontent.com/d/${id}`}; }
-  return {primary:url, fallback:url};
+  if(m){
+    const id = m[1];
+    return `https://drive.google.com/uc?export=view&id=${id}`;
+  }
+  // Dropbox: ?dl=0 -> raw=1
+  if(url.includes("dropbox.com")){
+    return url.replace("dl=0","raw=1").replace("?dl=0","?raw=1");
+  }
+  // OneDrive: تحويل إلى embeds/raw إن أمكن
+  if(url.includes("1drv.ms") || url.includes("sharepoint.com")){
+    // أفضل محاولة بسيطة للعرض
+    return url.replace("?e=","?download=1").replace("&e=","&download=1");
+  }
+  return url;
+}
+function driveFallback(url){
+  let m = url.match(/id=([a-zA-Z0-9_-]+)/) || url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
+  if(m) return `https://lh3.googleusercontent.com/d/${m[1]}`;
+  return url;
 }
 
 /* ========= State + Elements ========= */
-let state = { letter:"الكل", query:"", isAdmin:false, cases:[], currentCase:null };
+let state = { letter:"الكل", query:"", isAdmin:false, cases:[], currentCase:null, viewer:{list:[], index:0} };
 
 const gridEl = document.getElementById("grid");
 const emptyEl = document.getElementById("empty");
@@ -211,6 +225,33 @@ const noteText    = document.getElementById("noteText");
 const addNoteBtn  = document.getElementById("addNoteBtn");
 const notesCounter= document.getElementById("notesCounter");
 
+/* Viewer */
+const viewer = document.getElementById("viewer");
+const viewerImg = document.getElementById("viewerImg");
+const viewerClose = document.getElementById("viewerClose");
+const prevBtn = document.getElementById("prevBtn");
+const nextBtn = document.getElementById("nextBtn");
+function openViewer(list, idx=0){
+  state.viewer.list = list;
+  state.viewer.index = idx;
+  showViewerImage();
+  viewer.style.display = "flex";
+}
+function showViewerImage(){
+  const src = state.viewer.list[state.viewer.index];
+  viewerImg.src = src;
+}
+function nav(delta){
+  if(!state.viewer.list.length) return;
+  state.viewer.index = (state.viewer.index + delta + state.viewer.list.length) % state.viewer.list.length;
+  showViewerImage();
+}
+viewerClose.onclick = ()=> viewer.style.display="none";
+prevBtn.onclick = ()=> nav(-1);
+nextBtn.onclick = ()=> nav(+1);
+viewer.addEventListener("click",(e)=>{ if(e.target===viewer) viewer.style.display="none"; });
+document.addEventListener("keydown",(e)=>{ if(e.key==="Escape") viewer.style.display="none"; if(viewer.style.display==="flex" && (e.key==="ArrowRight"||e.key==="ArrowLeft")) nav(e.key==="ArrowRight"?+1:-1); });
+
 /* ========= Letters / URL ========= */
 function renderLetters(){
   lettersBar.innerHTML = "";
@@ -224,19 +265,8 @@ function renderLetters(){
 }
 searchInput.addEventListener("input", e=>{ state.query = e.target.value; updateURL(); renderGrid(); });
 clearBtn.addEventListener("click", ()=>{ searchInput.value=""; state.query=""; updateURL(); renderGrid(); searchInput.focus(); });
-function readURL(){
-  const hash = new URLSearchParams(location.hash.replace(/^#/,""));
-  const L = hash.get("letter"); const Q = hash.get("q");
-  if(L && ARABIC_LETTERS.includes(L)) state.letter=L;
-  if(Q) { state.query = Q; searchInput.value = Q; }
-}
-function updateURL(){
-  const p = new URLSearchParams();
-  if(state.letter && state.letter!=="الكل") p.set("letter", state.letter);
-  if(state.query) p.set("q", state.query);
-  const newHash = p.toString();
-  history.replaceState(null,"", newHash ? `#${newHash}` : location.pathname+location.search);
-}
+function readURL(){ const hash = new URLSearchParams(location.hash.replace(/^#/,"")); const L = hash.get("letter"); const Q = hash.get("q"); if(L && ARABIC_LETTERS.includes(L)) state.letter=L; if(Q){ state.query=Q; searchInput.value=Q; } }
+function updateURL(){ const p=new URLSearchParams(); if(state.letter!=="الكل") p.set("letter",state.letter); if(state.query) p.set("q",state.query); const h=p.toString(); history.replaceState(null,"", h?`#${h}`:location.pathname+location.search); }
 
 /* ========= Grid ========= */
 function renderGrid(){
@@ -253,8 +283,8 @@ function renderGrid(){
 
   filtered.forEach(item=>{
     const imgs = Array.isArray(item.images) ? item.images : (item.imageUrl ? [item.imageUrl] : []);
-    const pair  = drivePair(imgs[0] || "");
-    const first = pair.primary || "";
+    const firstUrl = imgs[0] ? toDirectView(imgs[0]) : "";
+    const firstFallback = imgs[0] ? driveFallback(firstUrl) : "";
     const card = document.createElement("article");
     card.className = "card" + (state.isAdmin ? " admin" : "");
     card.innerHTML = `
@@ -262,23 +292,18 @@ function renderGrid(){
         <button class="btn" data-images="${item.id}">الصور (${imgs.length||0})</button>
         <button class="btn" data-notes="${item.id}" id="btn-notes-${item.id}">Progress Notes (…)</button>
       </div>
-      <img class="thumb" loading="lazy" src="${first}" alt="${item.name}">
+      <img class="thumb" loading="lazy" referrerpolicy="no-referrer" src="${firstUrl}" alt="${item.name}">
       <button class="del" data-del="${item.id}">حذف</button>
       <div class="meta">
         <div class="name" title="${item.name}">${item.name}</div>
         <div class="badge">${normalizeArabic(item.name).charAt(0) || ""}</div>
       </div>
     `;
-    const img = card.querySelector("img"); let triedFallback = false;
-    img.onerror = ()=> {
-      if(!triedFallback && pair.fallback && pair.fallback!==first){ triedFallback = true; img.src = pair.fallback; return; }
-      img.src = "data:image/svg+xml;utf8," + encodeURIComponent(
-        `<svg xmlns='http://www.w3.org/2000/svg' width='600' height='400'><rect width='100%' height='100%' fill='#0b1223'/><text x='50%' y='50%' dominant-baseline='middle' text-anchor='middle' fill='#94a3b8' font-family='Cairo' font-size='22'>تعذّر تحميل الصورة</text></svg>`
-      );
-    };
+    const img = card.querySelector("img");
+    let triedFallback = false;
+    img.onerror = ()=>{ if(!triedFallback && firstFallback && firstFallback!==firstUrl){ triedFallback=true; img.src=firstFallback; } };
     gridEl.appendChild(card);
 
-    // حمّل عداد الملاحظات
     updateNotesCount(item.id).catch(()=>{});
   });
 
@@ -301,23 +326,25 @@ function renderGrid(){
   });
 }
 
-/* ========= Images Modal ========= */
+/* ========= Images Modal (عرض داخلي بالكامل) ========= */
 function openImagesModal(caseId){
   const item = state.cases.find(c=>c.id===caseId); if(!item) return;
   state.currentCase = item;
   imagesWrap.innerHTML = "";
+
   const imgs = Array.isArray(item.images) ? item.images : (item.imageUrl ? [item.imageUrl] : []);
-  if(!imgs.length){ imagesWrap.innerHTML = `<div class="empty">لا توجد صور.</div>`; }
+  const directList = imgs.map(u=>toDirectView(u));
+  if(!directList.length){ imagesWrap.innerHTML = `<div class="empty">لا توجد صور.</div>`; }
   else {
-    imgs.forEach(u=>{
-      const p = drivePair(u);
-      const a = document.createElement("a");
-      a.href = p.primary.replace("export=view","export=download");
-      a.target = "_blank"; a.rel="noopener";
-      a.innerHTML = `<img class="thumb" style="border-radius:12px;border:1px solid var(--ring)" loading="lazy" src="${p.primary}" alt="">`;
-      const img = a.querySelector("img"); let tried=false;
-      img.onerror = ()=>{ if(!tried){ tried=true; img.src = p.fallback; } };
-      imagesWrap.appendChild(a);
+    directList.forEach((direct,i)=>{
+      const fallback = driveFallback(direct);
+      const el = document.createElement("div");
+      el.innerHTML = `<img class="thumb" style="border-radius:12px;border:1px solid var(--ring)" loading="lazy" referrerpolicy="no-referrer" src="${direct}" alt="">`;
+      const im = el.querySelector("img");
+      let tried=false;
+      im.onerror = ()=>{ if(!tried && fallback && fallback!==direct){ tried=true; im.src=fallback; } };
+      im.onclick = ()=> openViewer(directList.map(d=>driveFallback(d)||d), i); // افتح اللايت بوكس
+      imagesWrap.appendChild(el);
     });
   }
   imagesModal.style.display = "flex";
@@ -339,7 +366,7 @@ async function loadNotes(caseId){
 }
 function renderNotesList(list){
   notesList.innerHTML = "";
-  document.getElementById("notesCounter").textContent = list.length;
+  notesCounter.textContent = list.length;
   if(!list.length){ notesList.innerHTML = `<div class="empty">لا توجد ملاحظات بعد.</div>`; return; }
   list.forEach(n=>{
     const by = n.by||"مجهول";
@@ -347,10 +374,7 @@ function renderNotesList(list){
     const div = document.createElement("div");
     div.className = "note";
     div.innerHTML = `
-      <div class="meta">
-        <span>${by}</span>
-        <span>${when}</span>
-      </div>
+      <div class="meta"><span>${by}</span><span>${when}</span></div>
       <div class="text">${n.text}</div>
     `;
     notesList.appendChild(div);
@@ -412,13 +436,13 @@ onAuthStateChanged(auth, renderAuthArea);
 
 /* ========= Add Case (admin) ========= */
 addBtn.addEventListener("click", ()=>{ addModal.style.display="flex"; caseName.focus(); });
-document.addEventListener("keydown",(e)=>{ if(e.key==="Escape"){ addModal.style.display="none"; imagesModal.style.display="none"; notesModal.style.display="none"; } });
+document.addEventListener("keydown",(e)=>{ if(e.key==="Escape"){ addModal.style.display="none"; imagesModal.style.display="none"; notesModal.style.display="none"; viewer.style.display="none"; } });
 cancelAdd.addEventListener("click", ()=>{ addModal.style.display="none"; caseName.value=""; caseUrls.value=""; });
 
 async function addCase(){
   const name = (caseName.value||"").trim();
   const urls = parseUrls(caseUrls.value);
-  if(!name || !urls.length){ alert("أدخل الاسم وروابط الصور"); return; }
+  if(!name){ alert("أدخل الاسم"); return; }
   const normalizedName = normalizeArabic(name);
   const newRef = doc(collection(db,"cases"));
   try{
@@ -437,7 +461,9 @@ onSnapshot(query(collection(db,"cases"), orderBy("normalizedName")), (snap)=>{
 });
 
 /* ========= Init ========= */
-readURL(); renderLetters(); renderGrid();
+(function init(){
+  renderLetters(); readURL(); renderGrid();
+})();
 </script>
 </body>
 </html>
