@@ -9,7 +9,7 @@
     :root{
       --bg:#0f172a; --card:#0b1223; --ring:#1f2937; --text:#e5e7eb; --muted:#94a3b8;
       --chip:#111827; --accent:#22d3ee; --accent-2:#a78bfa; --radius:18px; --shadow:0 10px 30px rgba(0,0,0,.35);
-      --danger:#dc2626; --ok:#10b981; --light:#111827; --note-bg:#0c1426; /* فاتح شوية */
+      --danger:#dc2626;
     }
     *{box-sizing:border-box}
     body{margin:0;font-family:"Cairo",system-ui; background:radial-gradient(1200px 800px at 80% -10%, #1e293b 0%, #0b1223 45%, #0f172a 100%);color:var(--text);min-height:100dvh}
@@ -41,13 +41,36 @@
     .empty{text-align:center;color:var(--muted);padding:36px 10px;border:1px dashed var(--ring);border-radius:16px;margin-top:8px}
     .footer{margin-top:28px;color:#a1a1aa;font-size:12px;text-align:center}
     .pill{border:1px solid var(--ring);padding:6px 10px;border-radius:999px;font-size:12px;background:#0b1223;color:#d1d5db}
-    /* Modals */
+
+    /* ==== المودالات ==== */
     .modal{position:fixed;inset:0;background:rgba(2,6,23,.6);backdrop-filter:blur(4px);display:none;align-items:center;justify-content:center;padding:16px;z-index:50}
     .modal .box{width:min(720px,100%);max-height:85dvh;overflow:auto;background:#0b1223;border:1px solid var(--ring);border-radius:18px;padding:16px}
     .field{display:flex;flex-direction:column;gap:6px;margin:10px 0}
     .field input[type="text"], .field textarea, .field input[type="email"], .field input[type="password"]{background:#0b1223;border:1px solid var(--ring);color:#e5e7eb;border-radius:12px;padding:10px 12px}
     .thumbs{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px}
-    .note{border:1px solid var(--ring);border-radius:12px;padding:10px;margin:8px 0;background:var(--note-bg)}
+
+    /* ==== كروت الملاحظات (لبني فاتح) ==== */
+    .note{
+      background:#a5d8ff;         /* لبني فاتح */
+      color:#0b1223;               /* نص غامق */
+      border:1px solid #7cc0ff;    /* إطار ناعم */
+      border-radius:12px;
+      padding:12px 14px;
+      margin:8px 0;
+      font-size:16px;              /* أكبر سنة */
+      font-weight:700;             /* أوضح */
+    }
+    .note .meta{
+      display:flex;justify-content:space-between;
+      color:#1e293b;
+      font-size:13.5px;
+      margin-bottom:6px;
+      font-weight:700;
+    }
+    .note .text{
+      white-space:pre-wrap;
+      line-height:1.65;
+    }
   </style>
 </head>
 <body>
@@ -74,10 +97,10 @@
     <div id="grid" class="grid" role="list"></div>
     <div id="empty" class="empty" style="display:none">لا توجد نتائج مطابقة حاليًا.</div>
 
-    <div class="footer">الصور المتعددة وإدارتها للأدمن فقط • <strong>Progress Notes</strong> متاحة للجميع للإضافة.</div>
+    <div class="footer">الصور المتعددة للأدمن فقط • <strong>Progress Notes</strong> متاحة للجميع للإضافة.</div>
   </div>
 
-  <!-- Add Case -->
+  <!-- إضافة حالة -->
   <div class="modal" id="addModal" aria-hidden="true">
     <div class="box">
       <h3 style="margin:0 0 8px;font-weight:800">إضافة حالة جديدة</h3>
@@ -93,20 +116,18 @@
     </div>
   </div>
 
-  <!-- Images Modal -->
+  <!-- مودال الصور -->
   <div class="modal" id="imagesModal" aria-hidden="true">
     <div class="box">
       <div class="row" style="justify-content:space-between;align-items:center">
         <h3 style="margin:0;font-weight:800">صور الحالة</h3>
-        <div class="row">
-          <button class="btn" id="closeImages">إغلاق</button>
-        </div>
+        <button class="btn" id="closeImages">إغلاق</button>
       </div>
       <div id="imagesWrap" class="thumbs" style="margin-top:10px"></div>
     </div>
   </div>
 
-  <!-- Notes Modal -->
+  <!-- مودال الملاحظات -->
   <div class="modal" id="notesModal" aria-hidden="true">
     <div class="box">
       <div class="row" style="justify-content:space-between;align-items:center">
@@ -125,7 +146,7 @@
         <textarea id="noteText" rows="3" placeholder="اكتب الملاحظة هنا..."></textarea>
       </div>
       <div class="row">
-        <span class="pill" id="notesCounter">0</span>
+        <span class="pill">العدد: <span id="notesCounter">0</span></span>
         <button class="btn primary" id="addNoteBtn">+ إضافة ملاحظة</button>
       </div>
     </div>
@@ -135,7 +156,7 @@
 /* ========= Firebase ========= */
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-import { getFirestore, collection, doc, setDoc, onSnapshot, query, orderBy, deleteDoc, addDoc, getDocs, updateDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { getFirestore, collection, doc, setDoc, onSnapshot, query, orderBy, deleteDoc, addDoc, getDocs } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyAjobzZN78wJhmejQOqa1EGcT7eBQ2RMp0",
@@ -257,8 +278,8 @@ function renderGrid(){
     };
     gridEl.appendChild(card);
 
-    // حمّل عداد الملاحظات (بدون أي تعديل في القواعد)
-    updateNotesCount(item.id).catch(()=>{ /* تجاهل لو مقفولة */ });
+    // حمّل عداد الملاحظات
+    updateNotesCount(item.id).catch(()=>{});
   });
 
   if(state.isAdmin){
@@ -306,7 +327,7 @@ closeImages.onclick = ()=> imagesModal.style.display="none";
 /* ========= Notes ========= */
 async function updateNotesCount(caseId){
   const ref = collection(db,"cases",caseId,"notes");
-  const qs = await getDocs(ref); // قراءة فقط
+  const qs = await getDocs(ref);
   const n = qs.size;
   const btn = document.getElementById(`btn-notes-${caseId}`);
   if(btn) btn.textContent = `Progress Notes (${n})`;
@@ -318,7 +339,7 @@ async function loadNotes(caseId){
 }
 function renderNotesList(list){
   notesList.innerHTML = "";
-  notesCounter.textContent = list.length;
+  document.getElementById("notesCounter").textContent = list.length;
   if(!list.length){ notesList.innerHTML = `<div class="empty">لا توجد ملاحظات بعد.</div>`; return; }
   list.forEach(n=>{
     const by = n.by||"مجهول";
@@ -326,10 +347,11 @@ function renderNotesList(list){
     const div = document.createElement("div");
     div.className = "note";
     div.innerHTML = `
-      <div style="display:flex;justify-content:space-between;color:#a1a1aa;font-size:12px;margin-bottom:6px">
-        <span>${by}</span><span>${when}</span>
+      <div class="meta">
+        <span>${by}</span>
+        <span>${when}</span>
       </div>
-      <div style="white-space:pre-wrap">${n.text}</div>
+      <div class="text">${n.text}</div>
     `;
     notesList.appendChild(div);
   });
@@ -342,7 +364,6 @@ async function openNotesModal(caseId){
   try{
     const list = await loadNotes(caseId);
     renderNotesList(list);
-    // حدّث العداد على الكارت
     updateNotesCount(caseId).catch(()=>{});
   }catch(e){
     notesList.innerHTML = `<div class="empty">تعذّر تحميل الملاحظات (قد تكون القواعد لا تسمح).</div>`;
