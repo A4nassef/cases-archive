@@ -72,7 +72,7 @@
     <div class="footer">الصور من Google Drive/أي استضافة • الإضافة والحذف للأدمن فقط.</div>
   </div>
 
-  <!-- Modal: Add Case (name + image URL) -->
+  <!-- Modal: Add Case -->
   <div class="modal" id="addModal" aria-hidden="true">
     <div class="box">
       <h3 style="margin:0 0 8px;font-weight:800">إضافة حالة جديدة</h3>
@@ -95,19 +95,20 @@
   </div>
 
 <script type="module">
-/* ===================== Firebase Setup ===================== */
-const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-  projectId: "YOUR_PROJECT_ID",
-  storageBucket: "YOUR_PROJECT_ID.appspot.com",
-  messagingSenderId: "YOUR_SENDER_ID",
-  appId: "YOUR_APP_ID"
-};
-
+/* ===================== Firebase Setup (واحد فقط) ===================== */
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import { getFirestore, collection, doc, setDoc, onSnapshot, query, orderBy, deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+// إعدادات مشروعك (القيم التي أرسلتها)
+const firebaseConfig = {
+  apiKey: "AIzaSyAjobzZN78wJhmejQOqa1EGcT7eBQ2RMp0",
+  authDomain: "cases-archive.firebaseapp.com",
+  projectId: "cases-archive",
+  storageBucket: "cases-archive.appspot.com",
+  messagingSenderId: "734612178440",
+  appId: "1:734612178440:web:1c38cbf288c2c0223df3bd"
+};
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
@@ -117,19 +118,17 @@ const db = getFirestore(app);
 const ARABIC_LETTERS = ["الكل","ا","ب","ت","ث","ج","ح","خ","د","ذ","ر","ز","س","ش","ص","ض","ط","ظ","ع","غ","ف","ق","ك","ل","م","ن","ه","و","ي"];
 const DIACRITICS = /[\u064B-\u065F\u0670\u06D6-\u06ED]/g;
 const normalizeArabic = s => (s||"").replace(DIACRITICS,"").replace(/[إأآا]/g,"ا").replace(/ى/g,"ي").replace(/ؤ/g,"و").replace(/ئ/g,"ي").trim();
-
 /* يحول رابط Google Drive إلى رابط عرض مباشر */
 function toDirectDriveUrl(url){
   if(!url) return "";
-  // /file/d/FILE_ID/...
   let m = url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
   if(m) return `https://drive.google.com/uc?export=view&id=${m[1]}`;
-  // open?id=FILE_ID
   m = url.match(/[?&]id=([a-zA-Z0-9_-]+)/);
   if(m) return `https://drive.google.com/uc?export=view&id=${m[1]}`;
-  return url; // لو مش Drive، نرجّعها كما هي (Imgur/Cloudinary... إلخ)
+  return url;
 }
 
+/* ===================== State + Elements ===================== */
 let state = { letter:"الكل", query:"", isAdmin:false, cases:[] };
 
 const gridEl = document.getElementById("grid");
@@ -145,7 +144,7 @@ const cancelAdd = document.getElementById("cancelAdd");
 const confirmAdd = document.getElementById("confirmAdd");
 const authArea = document.getElementById("authArea");
 
-/* = UI: Letters = */
+/* ===================== UI: Letters ===================== */
 function renderLetters(){
   lettersBar.innerHTML = "";
   ARABIC_LETTERS.forEach(l=>{
@@ -157,7 +156,7 @@ function renderLetters(){
   });
 }
 
-/* = UI: Grid = */
+/* ===================== UI: Grid ===================== */
 function renderGrid(){
   const q = normalizeArabic(state.query);
   const filtered = state.cases.filter(x=>{
@@ -197,7 +196,7 @@ function renderGrid(){
   }
 }
 
-/* = Search + URL = */
+/* ===================== Search + URL ===================== */
 searchInput.addEventListener("input", e=>{ state.query = e.target.value; updateURL(); renderGrid(); });
 clearBtn.addEventListener("click", ()=>{ searchInput.value=""; state.query=""; updateURL(); renderGrid(); searchInput.focus(); });
 
@@ -215,7 +214,7 @@ function updateURL(){
   history.replaceState(null,"", newHash ? `#${newHash}` : location.pathname+location.search);
 }
 
-/* = Auth UI = */
+/* ===================== Auth UI ===================== */
 function renderAuthArea(user){
   authArea.innerHTML = "";
   if(user){
@@ -247,8 +246,9 @@ function renderAuthArea(user){
 }
 onAuthStateChanged(auth, renderAuthArea);
 
-/* = Add Case (name + URL) = */
+/* ===================== Add Case (name + URL) ===================== */
 addBtn.addEventListener("click", ()=>{ addModal.style.display="flex"; caseName.focus(); });
+document.addEventListener("keydown",(e)=>{ if(e.key==="Escape") addModal.style.display="none"; });
 cancelAdd.addEventListener("click", ()=>{ addModal.style.display="none"; caseName.value=""; caseUrl.value=""; });
 
 async function addCase(){
@@ -263,13 +263,13 @@ async function addCase(){
 }
 confirmAdd.addEventListener("click", async ()=>{ try{ await addCase(); }catch(e){ alert("تعذر الحفظ: "+(e?.message||"")); } });
 
-/* = Live Data = */
+/* ===================== Live Data ===================== */
 onSnapshot(query(collection(db,"cases"), orderBy("normalizedName")), (snap)=>{
   state.cases = snap.docs.map(d=>({ id:d.id, ...d.data() }));
   renderGrid();
 });
 
-/* = Init = */
+/* ===================== Init ===================== */
 readURL(); renderLetters(); renderGrid();
 </script>
 </body>
