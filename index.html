@@ -5,6 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>أرشيف الحالات</title>
 <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;800&display=swap" rel="stylesheet">
+<!-- مكتبة التصدير إلى Excel -->
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <style>
 :root{
   --bg:#0f172a; --card:#0b1223; --ring:#1f2937; --text:#e5e7eb; --muted:#94a3b8;
@@ -136,7 +138,7 @@ body{margin:0;font-family:"Cairo",system-ui;background:radial-gradient(1200px 80
   </div>
 </div>
 
-<!-- لايت‑بوكس -->
+<!-- لايت-بوكس -->
 <div class="viewer" id="viewer">
   <button class="btn close" id="viewerClose">إغلاق</button>
   <div class="nav prev" id="prevBtn">‹</div>
@@ -149,7 +151,10 @@ body{margin:0;font-family:"Cairo",system-ui;background:radial-gradient(1200px 80
   <div class="box">
     <div class="row" style="justify-content:space-between;align-items:center">
       <h3 style="margin:0;font-weight:800">Progress Notes</h3>
-      <button class="btn" id="closeNotes">إغلاق</button>
+      <div class="row">
+        <button class="btn" id="exportNotes">تحميل Excel</button>
+        <button class="btn" id="closeNotes">إغلاق</button>
+      </div>
     </div>
     <div id="notesList" style="margin-top:10px"></div>
     <div class="field" style="margin-top:12px"><label>الاسم (اختياري)</label><input type="text" id="noteBy" placeholder="مثال: د. محمد / تمريض / ولي أمر"></div>
@@ -179,7 +184,7 @@ const db = getFirestore(app);
 
 /* ===== Helpers ===== */
 const ARABIC_LETTERS = ["الكل","ا","ب","ت","ث","ج","ح","خ","د","ذ","ر","ز","س","ش","ص","ض","ط","ظ","ع","غ","ف","ق","ك","ل","م","ن","ه","و","ي"];
-const DIACRITICS = /[\u064B-\u065F\u06D6-\u06ED]/g;
+const DIACRITICS = /[\u064B-\u065F\u06ED]/g;
 const normalizeArabic = s => (s||"").replace(DIACRITICS,"").replace(/[إأآا]/g,"ا").replace(/ى/g,"ي").replace(/ؤ/g,"و").replace(/ئ/g,"ي").trim();
 const parseUrls = raw => (raw||"").split(/\n+/).map(x=>x.trim()).filter(Boolean);
 function toDirectView(url){
@@ -228,6 +233,7 @@ const imgAddMsg = document.getElementById("imgAddMsg");
 
 const notesModal  = document.getElementById("notesModal");
 const closeNotes  = document.getElementById("closeNotes");
+const exportNotes = document.getElementById("exportNotes");
 const notesList   = document.getElementById("notesList");
 const noteBy      = document.getElementById("noteBy");
 const noteText    = document.getElementById("noteText");
@@ -283,7 +289,6 @@ async function loadPage(){
 
   renderGrid();
 
-  // تحديث أزرار الصفحات
   pageNo.textContent = state.page;
   prevPageBtn.disabled = state.page<=1;
   nextPageBtn.disabled = !state.lastVisible || state.cases.length < state.pageSize;
@@ -313,6 +318,7 @@ function renderGrid(){
 
     const card = document.createElement("article");
     card.className="card"+(state.isAdmin?" admin":"");
+    card.setAttribute("data-id", item.id);
     card.innerHTML = `
       <div class="topBtns">
         <button class="btn" data-images="${item.id}">الصور (${imgs.length||0})</button>
@@ -330,16 +336,13 @@ function renderGrid(){
     im.onerror=()=>{ if(!tried && fallback && fallback!==first){ tried=true; im.src=fallback; } };
     gridEl.appendChild(card);
 
-    // عداد الملاحظات
     updateNotesCount(item.id).catch(()=>{});
   });
 
-  // أحداث الأزرار
   gridEl.querySelectorAll("[data-images]").forEach(b=> b.onclick=()=>openImagesModal(b.getAttribute("data-images")) );
   gridEl.querySelectorAll("[data-addimg]").forEach(b=> b.onclick=()=>{ openImagesModal(b.getAttribute("data-addimg")); setTimeout(()=>{ if(state.isAdmin) newImageUrl.focus(); }, 50); });
   gridEl.querySelectorAll("[data-notes]").forEach(b=> b.onclick=()=>openNotesModal(b.getAttribute("data-notes")) );
 
-  // حذف حالة (أدمن)
   if(state.isAdmin){
     gridEl.querySelectorAll("[data-del]").forEach(b=>{
       b.onclick=async (e)=>{
@@ -387,8 +390,8 @@ addImageLinkBtn.onclick = async ()=>{
   try{
     await updateDoc(doc(db,"cases",currentCase.id), { images: arrayUnion(url) });
     imgAddMsg.textContent = "تمت إضافة الرابط ✅";
-    await loadPage(); // لتحديث عدّاد الصور على الكروت
-    openImagesModal(currentCase.id); // إعادة فتح لتحديث القائمة داخل المودال
+    await loadPage();
+    openImagesModal(currentCase.id);
   }catch(e){
     alert("تعذّر إضافة الرابط (تأكد من صلاحيات الأدمن).");
   }
@@ -434,6 +437,40 @@ addNoteBtn.onclick=async ()=>{
     noteText.value=""; noteBy.value="";
     const list=await loadNotes(currentCase.id); renderNotesList(list); updateNotesCount(currentCase.id).catch(()=>{});
   }catch{ alert("تعذّر إضافة الملاحظة."); }
+};
+
+/* ===== Export notes to Excel (per case) ===== */
+exportNotes.onclick = async ()=>{
+  try{
+    if(!currentCase){ alert("افتح الملاحظات لحالة أولاً."); return; }
+    const list = await loadNotes(currentCase.id);
+    // تجهيز البيانات
+    const rows = list.map(n=>({
+      "Case Name": currentCase.name || "",
+      "Case ID": currentCase.id,
+      "التاريخ": n.createdAt ? new Date(n.createdAt).toLocaleString('ar-EG') : "",
+      "بواسطة": n.by || "مجهول",
+      "الملاحظة": n.text || ""
+    }));
+    // لو فاضية
+    if(rows.length===0){
+      rows.push({"Case Name": currentCase.name||"", "Case ID": currentCase.id, "التاريخ":"", "بواسطة":"", "الملاحظة":"(لا توجد ملاحظات)"});
+    }
+    // تحويل إلى ورقة عمل
+    const ws = XLSX.utils.json_to_sheet(rows, {header:["Case Name","Case ID","التاريخ","بواسطة","الملاحظة"]});
+    // توسعة الأعمدة شوية
+    ws['!cols'] = [{wch:20},{wch:24},{wch:22},{wch:18},{wch:60}];
+    // مصنف
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Progress Notes");
+    // اسم الملف
+    const safe = (currentCase.name||"case").replace(/[\\/:*?"<>|]+/g,"-");
+    const fn = `progress-notes_${safe}.xlsx`;
+    XLSX.writeFile(wb, fn);
+  }catch(e){
+    console.error(e);
+    alert("تعذّر إنشاء ملف Excel. جرّب ثانية.");
+  }
 };
 
 /* ===== Auth ===== */
