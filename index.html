@@ -30,7 +30,7 @@ body{margin:0;font-family:"Cairo",system-ui;background:radial-gradient(1200px 80
 .chip{flex:0 0 auto;padding:8px 12px;border-radius:999px;font-weight:700;font-size:14px;background:var(--chip);color:#d1d5db;border:1px solid var(--ring);cursor:pointer;user-select:none}
 .chip.active{background:linear-gradient(90deg,#0ea5e9,#22d3ee);color:#001219;border:0;box-shadow:0 6px 18px rgba(14,165,233,.35)}
 .grid{display:grid;gap:16px;grid-template-columns:repeat(auto-fill,minmax(200px,1fr))}
-.card{position:relative;border-radius:var(--radius);background:linear-gradient(180deg,rgba(17,24,39,.92),rgba(2,6,23,.92));border:1px solid var(--ring);overflow:hidden;box-shadow:var(--shadow);transition:transform .18s,box-shadow .18س,border-color .18s}
+.card{position:relative;border-radius:var(--radius);background:linear-gradient(180deg,rgba(17,24,39,.92),rgba(2,6,23,.92));border:1px solid var(--ring);overflow:hidden;box-shadow:var(--shadow);transition:transform .18s,box-shadow .18s,border-color .18s}
 .card:hover{transform:translateY(-4px);box-shadow:0 16px 40px rgba(0,0,0,.5);border-color:#3b82f6}
 .thumb{aspect-ratio:4/3;width:100%;object-fit:cover;display:block;background:#0b1223}
 .meta{padding:10px 12px 12px;display:flex;align-items:center;justify-content:space-between;gap:8px}
@@ -121,6 +121,8 @@ body{margin:0;font-family:"Cairo",system-ui;background:radial-gradient(1200px 80
       <h3 style="margin:0;font-weight:800">صور الحالة</h3>
       <button class="btn" id="closeImages">إغلاق</button>
     </div>
+
+    <!-- إضافة لينك صورة (للأدمن فقط) -->
     <div id="adminAddLink" style="display:none;margin:10px 0 4px">
       <div class="field">
         <label>إضافة رابط صورة (بدون رفع)</label>
@@ -132,6 +134,7 @@ body{margin:0;font-family:"Cairo",system-ui;background:radial-gradient(1200px 80
       </div>
       <div id="imgAddMsg" style="margin-top:6px;color:#a1a1aa;font-size:12px"></div>
     </div>
+
     <div id="imagesWrap" class="thumbs" style="margin-top:10px"></div>
   </div>
 </div>
@@ -148,7 +151,7 @@ body{margin:0;font-family:"Cairo",system-ui;background:radial-gradient(1200px 80
 <div class="modal" id="notesModal" aria-hidden="true">
   <div class="box">
     <div class="row" style="justify-content:space-between;align-items:center">
-      <h3 style="margin:0;font-weight:800">Progress Notes</h3>
+      <h3 style="margin:0;font-weight:800">الملاحظات</h3>
       <div class="row">
         <button class="btn" id="exportNotes">تحميل Excel</button>
         <button class="btn" id="closeNotes">إغلاق</button>
@@ -165,7 +168,7 @@ body{margin:0;font-family:"Cairo",system-ui;background:radial-gradient(1200px 80
 /* ===== Firebase ===== */
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-import { getFirestore, collection, doc, setDoc, query, orderBy, addDoc, getDocs, deleteDoc, updateDoc, limit, startAfter, startAt, endAt, where } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { getFirestore, collection, doc, setDoc, query, orderBy, addDoc, getDocs, deleteDoc, updateDoc, limit, startAfter, startAt, endAt } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 import { arrayUnion } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -201,10 +204,7 @@ function driveFallback(url){
 }
 
 /* ===== State + Elements ===== */
-let state = {
-  isAdmin:false, letter:"الكل", query:"", page:1, pageSize:50,
-  pagesCursors:[null], lastVisible:null, cases:[]
-};
+let state = { isAdmin:false, letter:"الكل", query:"", page:1, pageSize:50, pagesCursors:[null], lastVisible:null, cases:[] };
 
 const gridEl = document.getElementById("grid");
 const emptyEl = document.getElementById("empty");
@@ -252,7 +252,7 @@ function nav(delta){ if(!viewerList.length) return; viewerIndex=(viewerIndex+del
 viewerClose.onclick=()=>viewer.style.display="none";
 prevBtn.onclick=()=>nav(-1); nextBtn.onclick=()=>nav(1);
 viewer.addEventListener("click",(e)=>{ if(e.target===viewer) viewer.style.display="none"; });
-document.addEventListener("keydown",(e)=>{ if(e.key==="Escape"){ viewer.style.display="none"; } if(viewer.style.display==="flex" && (e.key==="ArrowRight"||e.key==="ArrowLeft")) nav(e.key==="ArrowRight"?1:-1); });
+document.addEventListener("keydown",(e)=>{ if(e.key==="Escape") viewer.style.display="none"; if(viewer.style.display==="flex" && (e.key==="ArrowRight"||e.key==="ArrowLeft")) nav(e.key==="ArrowRight"?1:-1); });
 
 /* ===== Letters & Search ===== */
 function renderLetters(){
@@ -268,7 +268,8 @@ function renderLetters(){
 searchInput.addEventListener("input",()=>{ state.query=searchInput.value; state.page=1; state.pagesCursors=[null]; loadPage(); });
 clearBtn.onclick=()=>{ searchInput.value=""; state.query=""; state.page=1; state.pagesCursors=[null]; loadPage(); };
 
-/* ===== Firestore pagination + Search (الاسم أو ID) ===== */
+/* ===== Firestore pagination + Search ===== */
+import { where, startAfter as _startAfter } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 async function queryByName(qNorm, cursor){
   const base = collection(db,"cases");
   const pageLim = limit(state.pageSize);
@@ -281,36 +282,24 @@ async function queryByName(qNorm, cursor){
   }
   return await getDocs(query(base, orderBy("normalizedName"), ...(cursor?[startAfter(cursor)]:[]), pageLim));
 }
-
-async function queryByExternalId(qId, cursor){
+async function queryByExternalId(qId){
   if(!qId) return null;
   const base = collection(db,"cases");
-  const pageLim = limit(state.pageSize);
-  // بنستخدم caseIdLower للبحث بالبادئة
-  return await getDocs(query(base, orderBy("caseIdLower"), startAt(qId), endAt(qId+"\uf8ff"), ...(cursor?[startAfter(cursor)]:[]), pageLim));
+  return await getDocs(query(base, orderBy("caseIdLower"), startAt(qId), endAt(qId+"\uf8ff"), limit(state.pageSize)));
 }
-
 function mergeUniqueDocs(aDocs, bDocs){
-  const map = new Map();
-  (aDocs||[]).forEach(d=>map.set(d.id,d));
-  (bDocs||[]).forEach(d=>map.set(d.id,d));
-  return Array.from(map.values());
+  const map = new Map(); (aDocs||[]).forEach(d=>map.set(d.id,d)); (bDocs||[]).forEach(d=>map.set(d.id,d)); return Array.from(map.values());
 }
-
 async function loadPage(){
   const qNorm = normalizeArabic(state.query);
   const qId   = lower(state.query);
 
   let nameSnap = await queryByName(qNorm, state.pagesCursors[state.page-1]||null);
-  let idSnap   = qId ? await queryByExternalId(qId, null) : null;
+  let idSnap   = qId ? await queryByExternalId(qId) : null;
 
-  // دمج النتائج لو في بحث
   let docs;
-  if(qNorm || qId){
-    docs = mergeUniqueDocs(nameSnap?.docs, idSnap?.docs);
-  }else{
-    docs = nameSnap.docs;
-  }
+  if(qNorm || qId){ docs = mergeUniqueDocs(nameSnap?.docs, idSnap?.docs); }
+  else{ docs = nameSnap.docs; }
 
   state.cases = docs.map(d=>({id:d.id, ...d.data()}));
   state.lastVisible = nameSnap?.docs?.[nameSnap.docs.length-1] || null;
@@ -321,18 +310,8 @@ async function loadPage(){
   prevPageBtn.disabled = state.page<=1;
   nextPageBtn.disabled = !state.lastVisible || state.cases.length < state.pageSize;
 }
-
-nextPageBtn.onclick = async ()=>{
-  if(!state.lastVisible) return;
-  state.pagesCursors[state.page] = state.lastVisible;
-  state.page += 1;
-  await loadPage();
-};
-prevPageBtn.onclick = async ()=>{
-  if(state.page<=1) return;
-  state.page -= 1;
-  await loadPage();
-};
+nextPageBtn.onclick = async ()=>{ if(!state.lastVisible) return; state.pagesCursors[state.page] = state.lastVisible; state.page += 1; await loadPage(); };
+prevPageBtn.onclick = async ()=>{ if(state.page<=1) return; state.page -= 1; await loadPage(); };
 
 /* ===== Render grid ===== */
 function renderGrid(){
@@ -348,12 +327,12 @@ function renderGrid(){
     const card = document.createElement("article");
     card.className="card"+(state.isAdmin?" admin":"");
     card.setAttribute("data-id", item.id);
-    const extId = item.caseId || ""; // الـ ID اللي انت دخلته
+    const extId = item.caseId || "";
     card.innerHTML = `
       <div class="topBtns">
         <button class="btn" data-images="${item.id}">الصور (${imgs.length||0})</button>
         <button class="btn add-img" data-addimg="${item.id}">+ إضافة صورة</button>
-        <button class="btn" data-notes="${item.id}" id="btn-notes-${item.id}">Progress Notes (…)</button>
+        <button class="btn" data-notes="${item.id}" id="btn-notes-${item.id}">الملاحظات (…)</button>
       </div>
       <img class="thumb" loading="lazy" referrerpolicy="no-referrer" src="${first}" alt="${item.name}">
       <button class="del" data-del="${item.id}">حذف</button>
@@ -413,7 +392,6 @@ function openImagesModal(caseId){
   imagesModal.style.display="flex";
 }
 closeImages.onclick=()=>imagesModal.style.display="none";
-
 addImageLinkBtn.onclick = async ()=>{
   const url = (newImageUrl.value||"").trim();
   if(!currentCase || !url) return;
@@ -432,7 +410,7 @@ async function updateNotesCount(caseId){
   const qs = await getDocs(query(collection(db,"cases",caseId,"notes")));
   const n = qs.size;
   const btn = document.getElementById(`btn-notes-${caseId}`);
-  if(btn) btn.textContent = `Progress Notes (${n})`;
+  if(btn) btn.textContent = `الملاحظات (${n})`;
 }
 async function loadNotes(caseId){
   const qs = await getDocs(query(collection(db,"cases",caseId,"notes"), orderBy("createdAtTS","desc")));
@@ -442,7 +420,7 @@ function renderNotesList(list){
   notesList.innerHTML=""; notesCounter.textContent=list.length;
   if(!list.length){ notesList.innerHTML=`<div class="empty">لا توجد ملاحظات بعد.</div>`; return; }
   list.forEach(n=>{
-    const by=n.by||"مجهول";
+    const by=n.by||"اسم الدكتور";
     const when=n.createdAt?new Date(n.createdAt).toLocaleString('ar-EG'):"";
     const el=document.createElement("div");
     el.className="note";
@@ -460,7 +438,7 @@ async function openNotesModal(caseId){
 closeNotes.onclick=()=>notesModal.style.display="none";
 addNoteBtn.onclick=async ()=>{
   const text=(noteText.value||"").trim();
-  const by=(noteBy.value||"").trim()||"مجهول";
+  const by=(noteBy.value||"").trim()||"اسم الدكتور";
   if(!currentCase) return; if(!text){ alert("اكتب الملاحظة أولاً"); return; }
   try{
     await addDoc(collection(db,"cases",currentCase.id,"notes"), { text, by, createdAt:new Date().toISOString(), createdAtTS:Date.now() });
@@ -476,21 +454,20 @@ exportNotes.onclick = async ()=>{
     const list = await loadNotes(currentCase.id);
     const rows = list.map(n=>({
       "Case Name": currentCase.name || "",
-      "Case External ID": currentCase.caseId || "",
-      "Firestore Doc ID": currentCase.id,
+      "Case ID": currentCase.caseId || "",
       "التاريخ": n.createdAt ? new Date(n.createdAt).toLocaleString('ar-EG') : "",
-      "بواسطة": n.by || "مجهول",
+      "بواسطة": n.by || "اسم الدكتور",
       "الملاحظة": n.text || ""
     }));
     if(rows.length===0){
-      rows.push({"Case Name": currentCase.name||"", "Case External ID": currentCase.caseId||"", "Firestore Doc ID": currentCase.id, "التاريخ":"", "بواسطة":"", "الملاحظة":"(لا توجد ملاحظات)"});
+      rows.push({"Case Name": currentCase.name||"", "Case ID": currentCase.caseId||"", "التاريخ":"", "بواسطة":"اسم الدكتور", "الملاحظة":"(لا توجد ملاحظات)"});
     }
-    const ws = XLSX.utils.json_to_sheet(rows, {header:["Case Name","Case External ID","Firestore Doc ID","التاريخ","بواسطة","الملاحظة"]});
-    ws['!cols'] = [{wch:20},{wch:24},{wch:28},{wch:22},{wch:18},{wch:60}];
+    const ws = XLSX.utils.json_to_sheet(rows, {header:["Case Name","Case ID","التاريخ","بواسطة","الملاحظة"]});
+    ws['!cols'] = [{wch:20},{wch:24},{wch:22},{wch:18},{wch:60}];
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Progress Notes");
+    XLSX.utils.book_append_sheet(wb, ws, "الملاحظات");
     const safe = (currentCase.name||"case").replace(/[\\/:*?"<>|]+/g,"-");
-    const fn = `progress-notes_${safe}.xlsx`;
+    const fn = `notes_${safe}.xlsx`;
     XLSX.writeFile(wb, fn);
   }catch(e){
     console.error(e);
@@ -530,9 +507,7 @@ confirmAdd.onclick=async ()=>{
   if(!name){ alert("أدخل الاسم"); return; }
 
   const normalizedName=normalizeArabic(name);
-  const caseIdLower = lower(caseId); // للحروف الصغيرة للبحث
-
-  // ملاحظة: لو حابب تمنع تكرار الـ ID، نقدر نضيف check قبل الحفظ (بحث where("caseIdLower","==",caseIdLower))
+  const caseIdLower = lower(caseId);
 
   const ref=doc(collection(db,"cases"));
   try{
