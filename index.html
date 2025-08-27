@@ -5,7 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>أرشيف الحالات</title>
 <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;800&display=swap" rel="stylesheet">
-<!-- مكتبة التصدير إلى Excel -->
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <style>
 :root{
@@ -31,12 +30,13 @@ body{margin:0;font-family:"Cairo",system-ui;background:radial-gradient(1200px 80
 .chip{flex:0 0 auto;padding:8px 12px;border-radius:999px;font-weight:700;font-size:14px;background:var(--chip);color:#d1d5db;border:1px solid var(--ring);cursor:pointer;user-select:none}
 .chip.active{background:linear-gradient(90deg,#0ea5e9,#22d3ee);color:#001219;border:0;box-shadow:0 6px 18px rgba(14,165,233,.35)}
 .grid{display:grid;gap:16px;grid-template-columns:repeat(auto-fill,minmax(200px,1fr))}
-.card{position:relative;border-radius:var(--radius);background:linear-gradient(180deg,rgba(17,24,39,.92),rgba(2,6,23,.92));border:1px solid var(--ring);overflow:hidden;box-shadow:var(--shadow);transition:transform .18s,box-shadow .18s,border-color .18s}
+.card{position:relative;border-radius:var(--radius);background:linear-gradient(180deg,rgba(17,24,39,.92),rgba(2,6,23,.92));border:1px solid var(--ring);overflow:hidden;box-shadow:var(--shadow);transition:transform .18s,box-shadow .18س,border-color .18s}
 .card:hover{transform:translateY(-4px);box-shadow:0 16px 40px rgba(0,0,0,.5);border-color:#3b82f6}
 .thumb{aspect-ratio:4/3;width:100%;object-fit:cover;display:block;background:#0b1223}
 .meta{padding:10px 12px 12px;display:flex;align-items:center;justify-content:space-between;gap:8px}
 .name{font-weight:800;font-size:14px;line-height:1.3;color:#f1f5f9;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .badge{font-size:11px;padding:4px 8px;border-radius:999px;background:#0b1223;color:#93c5fd;border:1px dashed #1f3b69}
+.idpill{font-size:11px;padding:4px 8px;border-radius:999px;background:#0b1223;color:#93fdbd;border:1px dashed #1f6949;margin-inline-start:auto}
 .del{position:absolute;top:8px;left:8px;background:var(--danger);color:#fff;border:0;border-radius:10px;padding:6px 8px;cursor:pointer;display:none}
 .card.admin .del{display:block}
 .card .topBtns{position:absolute;top:8px;right:8px;display:flex;gap:6px}
@@ -80,7 +80,7 @@ body{margin:0;font-family:"Cairo",system-ui;background:radial-gradient(1200px 80
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
           <path d="M21 21l-3.9-3.9m1.4-5.2a7.5 7.5 0 11-15 0 7.5 7.5 0 0115 0z" stroke="#7dd3fc" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
-        <input id="search" type="text" placeholder="ابحث بالاسم" autocomplete="off" />
+        <input id="search" type="text" placeholder="ابحث بالاسم أو الـ ID" autocomplete="off" />
         <button class="btn" id="clearBtn">مسح</button>
       </div>
       <button class="btn primary" id="addBtn" style="display:none">+ إضافة حالة</button>
@@ -97,7 +97,7 @@ body{margin:0;font-family:"Cairo",system-ui;background:radial-gradient(1200px 80
     <button class="btn" id="nextPage" disabled>التالي</button>
   </div>
 
-  <div class="footer">يعرض 50 حالة/صفحة • الصور تُعرض داخل الصفحة • الملاحظات للجميع • إدارة الحالات للأدمن.</div>
+  <div class="footer">يعرض 50 حالة/صفحة • البحث بالاسم أو الـ ID • الملاحظات للجميع • إدارة الحالات للأدمن.</div>
 </div>
 
 <!-- إضافة حالة -->
@@ -105,6 +105,7 @@ body{margin:0;font-family:"Cairo",system-ui;background:radial-gradient(1200px 80
   <div class="box">
     <h3 style="margin:0 0 8px;font-weight:800">إضافة حالة جديدة</h3>
     <div class="field"><label>الاسم</label><input type="text" id="caseName" placeholder="مثال: أحمد علي"></div>
+    <div class="field"><label>ID الحالة (اختياري لكن مفضل)</label><input type="text" id="caseIdInput" placeholder="مثال: H123 أو 2025-0001"></div>
     <div class="field">
       <label>روابط الصور (اختياري – كل رابط في سطر)</label>
       <textarea id="caseUrls" rows="4" placeholder="الصق روابط (Drive/Dropbox/OneDrive)… كل رابط في سطر"></textarea>
@@ -120,8 +121,6 @@ body{margin:0;font-family:"Cairo",system-ui;background:radial-gradient(1200px 80
       <h3 style="margin:0;font-weight:800">صور الحالة</h3>
       <button class="btn" id="closeImages">إغلاق</button>
     </div>
-
-    <!-- إضافة لينك صورة (للأدمن فقط) -->
     <div id="adminAddLink" style="display:none;margin:10px 0 4px">
       <div class="field">
         <label>إضافة رابط صورة (بدون رفع)</label>
@@ -133,7 +132,6 @@ body{margin:0;font-family:"Cairo",system-ui;background:radial-gradient(1200px 80
       </div>
       <div id="imgAddMsg" style="margin-top:6px;color:#a1a1aa;font-size:12px"></div>
     </div>
-
     <div id="imagesWrap" class="thumbs" style="margin-top:10px"></div>
   </div>
 </div>
@@ -167,7 +165,7 @@ body{margin:0;font-family:"Cairo",system-ui;background:radial-gradient(1200px 80
 /* ===== Firebase ===== */
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-import { getFirestore, collection, doc, setDoc, query, orderBy, addDoc, getDocs, deleteDoc, updateDoc, limit, startAfter, startAt, endAt } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { getFirestore, collection, doc, setDoc, query, orderBy, addDoc, getDocs, deleteDoc, updateDoc, limit, startAfter, startAt, endAt, where } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 import { arrayUnion } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -187,6 +185,8 @@ const ARABIC_LETTERS = ["الكل","ا","ب","ت","ث","ج","ح","خ","د","ذ",
 const DIACRITICS = /[\u064B-\u065F\u06ED]/g;
 const normalizeArabic = s => (s||"").replace(DIACRITICS,"").replace(/[إأآا]/g,"ا").replace(/ى/g,"ي").replace(/ؤ/g,"و").replace(/ئ/g,"ي").trim();
 const parseUrls = raw => (raw||"").split(/\n+/).map(x=>x.trim()).filter(Boolean);
+const lower = s => (s||"").toString().trim().toLowerCase();
+
 function toDirectView(url){
   if(!url) return "";
   let m = url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/) || url.match(/[?&]id=([a-zA-Z0-9_-]+)/);
@@ -214,6 +214,7 @@ const clearBtn = document.getElementById("clearBtn");
 const addBtn = document.getElementById("addBtn");
 const addModal = document.getElementById("addModal");
 const caseName = document.getElementById("caseName");
+const caseIdInput = document.getElementById("caseIdInput");
 const caseUrls = document.getElementById("caseUrls");
 const cancelAdd = document.getElementById("cancelAdd");
 const confirmAdd = document.getElementById("confirmAdd");
@@ -251,7 +252,7 @@ function nav(delta){ if(!viewerList.length) return; viewerIndex=(viewerIndex+del
 viewerClose.onclick=()=>viewer.style.display="none";
 prevBtn.onclick=()=>nav(-1); nextBtn.onclick=()=>nav(1);
 viewer.addEventListener("click",(e)=>{ if(e.target===viewer) viewer.style.display="none"; });
-document.addEventListener("keydown",(e)=>{ if(e.key==="Escape") viewer.style.display="none"; if(viewer.style.display==="flex" && (e.key==="ArrowRight"||e.key==="ArrowLeft")) nav(e.key==="ArrowRight"?1:-1); });
+document.addEventListener("keydown",(e)=>{ if(e.key==="Escape"){ viewer.style.display="none"; } if(viewer.style.display==="flex" && (e.key==="ArrowRight"||e.key==="ArrowLeft")) nav(e.key==="ArrowRight"?1:-1); });
 
 /* ===== Letters & Search ===== */
 function renderLetters(){
@@ -267,25 +268,52 @@ function renderLetters(){
 searchInput.addEventListener("input",()=>{ state.query=searchInput.value; state.page=1; state.pagesCursors=[null]; loadPage(); });
 clearBtn.onclick=()=>{ searchInput.value=""; state.query=""; state.page=1; state.pagesCursors=[null]; loadPage(); };
 
-/* ===== Firestore pagination (50/صفحة) ===== */
-async function loadPage(){
+/* ===== Firestore pagination + Search (الاسم أو ID) ===== */
+async function queryByName(qNorm, cursor){
   const base = collection(db,"cases");
-  const qNorm = normalizeArabic(state.query);
   const pageLim = limit(state.pageSize);
-
-  let q;
-  if(qNorm){ // بحث بالاسم
-    q = query(base, orderBy("normalizedName"), startAt(qNorm), endAt(qNorm+"\uf8ff"), ...(state.pagesCursors[state.page-1]?[startAfter(state.pagesCursors[state.page-1])]:[]), pageLim);
-  }else if(state.letter!=="الكل"){ // تصفية بالحرف
+  if(qNorm){
+    return await getDocs(query(base, orderBy("normalizedName"), startAt(qNorm), endAt(qNorm+"\uf8ff"), ...(cursor?[startAfter(cursor)]:[]), pageLim));
+  }
+  if(state.letter!=="الكل"){
     const start = normalizeArabic(state.letter);
-    q = query(base, orderBy("normalizedName"), startAt(start), endAt(start+"\uf8ff"), ...(state.pagesCursors[state.page-1]?[startAfter(state.pagesCursors[state.page-1])]:[]), pageLim);
-  }else{ // الكل
-    q = query(base, orderBy("normalizedName"), ...(state.pagesCursors[state.page-1]?[startAfter(state.pagesCursors[state.page-1])]:[]), pageLim);
+    return await getDocs(query(base, orderBy("normalizedName"), startAt(start), endAt(start+"\uf8ff"), ...(cursor?[startAfter(cursor)]:[]), pageLim));
+  }
+  return await getDocs(query(base, orderBy("normalizedName"), ...(cursor?[startAfter(cursor)]:[]), pageLim));
+}
+
+async function queryByExternalId(qId, cursor){
+  if(!qId) return null;
+  const base = collection(db,"cases");
+  const pageLim = limit(state.pageSize);
+  // بنستخدم caseIdLower للبحث بالبادئة
+  return await getDocs(query(base, orderBy("caseIdLower"), startAt(qId), endAt(qId+"\uf8ff"), ...(cursor?[startAfter(cursor)]:[]), pageLim));
+}
+
+function mergeUniqueDocs(aDocs, bDocs){
+  const map = new Map();
+  (aDocs||[]).forEach(d=>map.set(d.id,d));
+  (bDocs||[]).forEach(d=>map.set(d.id,d));
+  return Array.from(map.values());
+}
+
+async function loadPage(){
+  const qNorm = normalizeArabic(state.query);
+  const qId   = lower(state.query);
+
+  let nameSnap = await queryByName(qNorm, state.pagesCursors[state.page-1]||null);
+  let idSnap   = qId ? await queryByExternalId(qId, null) : null;
+
+  // دمج النتائج لو في بحث
+  let docs;
+  if(qNorm || qId){
+    docs = mergeUniqueDocs(nameSnap?.docs, idSnap?.docs);
+  }else{
+    docs = nameSnap.docs;
   }
 
-  const snap = await getDocs(q);
-  state.cases = snap.docs.map(d=>({id:d.id,...d.data()}));
-  state.lastVisible = snap.docs[snap.docs.length-1] || null;
+  state.cases = docs.map(d=>({id:d.id, ...d.data()}));
+  state.lastVisible = nameSnap?.docs?.[nameSnap.docs.length-1] || null;
 
   renderGrid();
 
@@ -293,6 +321,7 @@ async function loadPage(){
   prevPageBtn.disabled = state.page<=1;
   nextPageBtn.disabled = !state.lastVisible || state.cases.length < state.pageSize;
 }
+
 nextPageBtn.onclick = async ()=>{
   if(!state.lastVisible) return;
   state.pagesCursors[state.page] = state.lastVisible;
@@ -319,6 +348,7 @@ function renderGrid(){
     const card = document.createElement("article");
     card.className="card"+(state.isAdmin?" admin":"");
     card.setAttribute("data-id", item.id);
+    const extId = item.caseId || ""; // الـ ID اللي انت دخلته
     card.innerHTML = `
       <div class="topBtns">
         <button class="btn" data-images="${item.id}">الصور (${imgs.length||0})</button>
@@ -327,9 +357,9 @@ function renderGrid(){
       </div>
       <img class="thumb" loading="lazy" referrerpolicy="no-referrer" src="${first}" alt="${item.name}">
       <button class="del" data-del="${item.id}">حذف</button>
-      <div class="meta">
-        <div class="name" title="${item.name}">${item.name}</div>
-        <div class="badge">${normalizeArabic(item.name).charAt(0) || ""}</div>
+      <div class="meta" title="${extId ? 'ID: '+extId : ''}">
+        <div class="name">${item.name}</div>
+        ${extId ? `<div class="idpill">${extId}</div>` : `<div class="badge">${normalizeArabic(item.name).charAt(0) || ""}</div>`}
       </div>
     `;
     const im=card.querySelector("img"); let tried=false;
@@ -444,26 +474,21 @@ exportNotes.onclick = async ()=>{
   try{
     if(!currentCase){ alert("افتح الملاحظات لحالة أولاً."); return; }
     const list = await loadNotes(currentCase.id);
-    // تجهيز البيانات
     const rows = list.map(n=>({
       "Case Name": currentCase.name || "",
-      "Case ID": currentCase.id,
+      "Case External ID": currentCase.caseId || "",
+      "Firestore Doc ID": currentCase.id,
       "التاريخ": n.createdAt ? new Date(n.createdAt).toLocaleString('ar-EG') : "",
       "بواسطة": n.by || "مجهول",
       "الملاحظة": n.text || ""
     }));
-    // لو فاضية
     if(rows.length===0){
-      rows.push({"Case Name": currentCase.name||"", "Case ID": currentCase.id, "التاريخ":"", "بواسطة":"", "الملاحظة":"(لا توجد ملاحظات)"});
+      rows.push({"Case Name": currentCase.name||"", "Case External ID": currentCase.caseId||"", "Firestore Doc ID": currentCase.id, "التاريخ":"", "بواسطة":"", "الملاحظة":"(لا توجد ملاحظات)"});
     }
-    // تحويل إلى ورقة عمل
-    const ws = XLSX.utils.json_to_sheet(rows, {header:["Case Name","Case ID","التاريخ","بواسطة","الملاحظة"]});
-    // توسعة الأعمدة شوية
-    ws['!cols'] = [{wch:20},{wch:24},{wch:22},{wch:18},{wch:60}];
-    // مصنف
+    const ws = XLSX.utils.json_to_sheet(rows, {header:["Case Name","Case External ID","Firestore Doc ID","التاريخ","بواسطة","الملاحظة"]});
+    ws['!cols'] = [{wch:20},{wch:24},{wch:28},{wch:22},{wch:18},{wch:60}];
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Progress Notes");
-    // اسم الملف
     const safe = (currentCase.name||"case").replace(/[\\/:*?"<>|]+/g,"-");
     const fn = `progress-notes_${safe}.xlsx`;
     XLSX.writeFile(wb, fn);
@@ -493,20 +518,34 @@ function renderAuthArea(user){
 }
 onAuthStateChanged(auth, renderAuthArea);
 
-/* ===== Add case ===== */
+/* ===== Add case (with external ID) ===== */
 addBtn.onclick=()=>{ addModal.style.display="flex"; caseName.focus(); };
 document.addEventListener("keydown",(e)=>{ if(e.key==="Escape"){ addModal.style.display="none"; imagesModal.style.display="none"; notesModal.style.display="none"; viewer.style.display="none"; } });
-cancelAdd.onclick=()=>{ addModal.style.display="none"; caseName.value=""; caseUrls.value=""; };
+cancelAdd.onclick=()=>{ addModal.style.display="none"; caseName.value=""; caseIdInput.value=""; caseUrls.value=""; };
 
 confirmAdd.onclick=async ()=>{
   const name=(caseName.value||"").trim();
+  const caseId=(caseIdInput.value||"").trim();
   let urls=parseUrls(caseUrls.value);
   if(!name){ alert("أدخل الاسم"); return; }
+
   const normalizedName=normalizeArabic(name);
+  const caseIdLower = lower(caseId); // للحروف الصغيرة للبحث
+
+  // ملاحظة: لو حابب تمنع تكرار الـ ID، نقدر نضيف check قبل الحفظ (بحث where("caseIdLower","==",caseIdLower))
+
   const ref=doc(collection(db,"cases"));
   try{
-    await setDoc(ref,{ name, normalizedName, letter: normalizedName.charAt(0)||"", images: urls, createdAt:new Date().toISOString() });
-    addModal.style.display="none"; caseName.value=""; caseUrls.value="";
+    await setDoc(ref,{ 
+      name, 
+      normalizedName, 
+      letter: normalizedName.charAt(0)||"", 
+      caseId: caseId || "", 
+      caseIdLower, 
+      images: urls, 
+      createdAt:new Date().toISOString() 
+    });
+    addModal.style.display="none"; caseName.value=""; caseIdInput.value=""; caseUrls.value="";
     state.page=1; state.pagesCursors=[null]; await loadPage();
   }catch{ alert("تعذّر إضافة الحالة (صلاحيات الأدمن فقط)."); }
 };
