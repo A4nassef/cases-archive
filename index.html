@@ -3,12 +3,11 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>أرشيف الحالات + Progress Notes</title>
+<title>أرشيف الحالات + Progress Notes (Excel)</title>
 
 <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;800&display=swap" rel="stylesheet">
-<!-- docx + FileSaver للتصدير Word -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/docx/8.5.0/docx.umd.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+<!-- مكتبة Excel -->
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 
 <style>
 :root{
@@ -152,7 +151,7 @@ body{margin:0;font-family:"Cairo",system-ui;background:radial-gradient(1200px 80
     <div class="row" style="justify-content:space-between;align-items:center">
       <h3 style="margin:0;font-weight:800">الملاحظات</h3>
       <div class="row">
-        <button class="btn" id="exportWord">تحميل Word</button>
+        <button class="btn" id="exportExcel">تحميل Excel</button>
         <button class="btn" id="closeNotes">إغلاق</button>
       </div>
     </div>
@@ -252,7 +251,7 @@ const imgAddMsg = document.getElementById("imgAddMsg");
 
 const notesModal  = document.getElementById("notesModal");
 const closeNotes  = document.getElementById("closeNotes");
-const exportWord  = document.getElementById("exportWord");
+const exportExcel = document.getElementById("exportExcel");
 const notesList   = document.getElementById("notesList");
 const noteBy      = document.getElementById("noteBy");
 const noteText    = document.getElementById("noteText");
@@ -476,94 +475,53 @@ addNoteBtn.onclick=async ()=>{
   }catch{ alert("تعذّر إضافة الملاحظة."); }
 };
 
-/* ===== Export Word (per case) ===== */
-exportWord.onclick = async ()=>{
+/* ===== Export Excel (per case) ===== */
+exportExcel.onclick = async ()=>{
   if(!currentCase){ alert("افتح الملاحظات لحالة أولاً."); return; }
   const list = await loadNotes(currentCase.id);
 
-  const { Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell, WidthType, AlignmentType, VerticalAlign, HeadingLevel, Footer, BorderStyle, ShadingType, ImageRun } = window.docx;
-
-  // شعار
-  let logoBuffer=null;
-  try{
-    const resp = await fetch("./chg-logo.png"); // ارفع chg-logo.png في جذر الريبو
-    if(resp.ok) logoBuffer = await resp.arrayBuffer();
-  }catch(e){ /* تجاهل لو مش موجود */ }
-
-  // جدول الهيدر (شعار + Patient identification)
-  const headerRow = new TableRow({
-    children:[
-      new TableCell({
-        width:{size:25,type:WidthType.PERCENTAGE},
-        margins:{top:200,right:200,bottom:200,left:200},
-        children:[ logoBuffer ? new Paragraph({ children:[ new ImageRun({ data:logoBuffer, transformation:{width:100,height:100}}) ] }) : new Paragraph("") ],
-        verticalAlign: VerticalAlign.CENTER
-      }),
-      new TableCell({
-        width:{size:75,type:WidthType.PERCENTAGE},
-        children:[
-          new Paragraph({ alignment: AlignmentType.RIGHT, children:[ new TextRun({text:"Patient’s identification", bold:true}) ] }),
-          new Paragraph({ alignment: AlignmentType.RIGHT, children:[ new TextRun({text:`NAME: ${currentCase.name||""}`}) ] }),
-          new Paragraph({ alignment: AlignmentType.RIGHT, children:[ new TextRun({text:`MRN: ${currentCase.caseId||""}`}) ] }),
-        ]
-      })
-    ]
-  });
-  const headerTable = new Table({
-    rows:[headerRow],
-    width:{size:100,type:WidthType.PERCENTAGE}
-  });
-
-  // عنوان
-  const title = new Paragraph({
-    text:"PHYSIOTHERAPY PROGRESS NOTE",
-    heading: HeadingLevel.HEADING_1,
-    alignment: AlignmentType.CENTER
-  });
-
+  // AOA rows
+  let rows = [];
+  // سطر بيانات المريض
+  rows.push([`Patient: ${currentCase.name || ""}`, `MRN: ${currentCase.caseId || ""}`]);
+  rows.push([]); // فراغ
+  // العنوان
+  rows.push(["PHYSIOTHERAPY PROGRESS NOTE"]);
+  rows.push([]); // فراغ
   // رأس الجدول
-  const head = new TableRow({
-    children:[
-      new TableCell({children:[new Paragraph("DATE / TIME")]}),
-      new TableCell({children:[new Paragraph("SESSION(S)")]}),
-      new TableCell({children:[new Paragraph("NOTE")]}),
-      new TableCell({children:[new Paragraph("SIGNATURE")]})
-    ]
-  });
+  rows.push(["Date / Time","Sessions","Note","Doctor (Signature)"]);
 
-  const rows = [head];
+  // الملاحظات
   list.forEach(n=>{
-    rows.push(new TableRow({
-      children:[
-        new TableCell({children:[new Paragraph(n.createdAt ? new Date(n.createdAt).toLocaleString('ar-EG') : "")]}),
-        new TableCell({children:[new Paragraph((n.sessions||[]).join(", "))]}),
-        new TableCell({children:[new Paragraph(n.text||"")]}),
-        new TableCell({children:[new Paragraph(n.by||"اسم الدكتور")]})
-      ]
-    }));
+    rows.push([
+      n.createdAt ? new Date(n.createdAt).toLocaleString('ar-EG') : "",
+      (n.sessions||[]).join(", "),
+      n.text || "",
+      n.by || "اسم الدكتور"
+    ]);
   });
 
-  const notesTable = new Table({
-    rows,
-    width:{size:100, type:WidthType.PERCENTAGE}
-  });
+  rows.push([]);
+  rows.push(["CHG-OCT-004-004"]); // الكود أسفل
 
-  // Footer بكود النموذج
-  const footer = new Footer({
-    children:[ new Paragraph({ alignment: AlignmentType.LEFT, children:[ new TextRun("CHG-OCT-004-004") ] }) ]
-  });
+  const ws = XLSX.utils.aoa_to_sheet(rows);
 
-  const doc = new Document({
-    sections:[{
-      properties:{},
-      footers:{ default: footer },
-      children:[ headerTable, title, new Paragraph(""), notesTable ]
-    }]
-  });
+  // عرض الأعمدة
+  ws['!cols'] = [{wch:22},{wch:28},{wch:60},{wch:22}];
 
-  const blob = await Packer.toBlob(doc);
+  // دمج خلايا لعمل شكل قريب من النموذج
+  // دمج "Patient: .." تمتد عمودين
+  XLSX.utils.sheet_add_aoa(ws, [], {origin:-1});
+  ws['!merges'] = [
+    {s:{r:0,c:0}, e:{r:0,c:1}},  // Patient
+    {s:{r:2,c:0}, e:{r:2,c:3}}   // العنوان على كامل العرض
+  ];
+
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "Notes");
+
   const safe = (currentCase.name||"case").replace(/[\\/:*?"<>|]+/g,"-");
-  saveAs(blob, `progress_notes_${safe}.docx`);
+  XLSX.writeFile(wb, `progress_notes_${safe}.xlsx`);
 };
 
 /* ===== Auth ===== */
@@ -591,6 +549,8 @@ addBtn.onclick=()=>{ addModal.style.display="flex"; caseName.focus(); };
 document.addEventListener("keydown",(e)=>{ if(e.key==="Escape"){ addModal.style.display="none"; imagesModal.style.display="none"; notesModal.style.display="none"; viewer.style.display="none"; } });
 cancelAdd.onclick=()=>{ addModal.style.display="none"; caseName.value=""; caseIdInput.value=""; caseUrls.value=""; };
 
+function normalizeNameForLetter(name){ return normalizeArabic(name).charAt(0)||""; }
+
 confirmAdd.onclick=async ()=>{
   const name=(caseName.value||"").trim();
   const caseId=(caseIdInput.value||"").trim();
@@ -605,7 +565,7 @@ confirmAdd.onclick=async ()=>{
     await setDoc(ref,{ 
       name, 
       normalizedName, 
-      letter: normalizedName.charAt(0)||"", 
+      letter: normalizeNameForLetter(name),
       caseId: caseId || "", 
       caseIdLower, 
       images: urls, 
