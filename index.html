@@ -1,11 +1,15 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>أرشيف الحالات</title>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>أرشيف الحالات + Progress Notes</title>
+
 <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;800&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<!-- docx + FileSaver للتصدير Word -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/docx/8.5.0/docx.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+
 <style>
 :root{
   --bg:#0f172a; --card:#0b1223; --ring:#1f2937; --text:#e5e7eb; --muted:#94a3b8;
@@ -42,21 +46,21 @@ body{margin:0;font-family:"Cairo",system-ui;background:radial-gradient(1200px 80
 .card .topBtns{position:absolute;top:8px;right:8px;display:flex;gap:6px}
 .add-img{display:none}
 .card.admin .add-img{display:inline-block}
-
 .empty{text-align:center;color:var(--muted);padding:36px 10px;border:1px dashed var(--ring);border-radius:16px;margin-top:8px}
 .footer{margin-top:28px;color:#a1a1aa;font-size:12px;text-align:center}
 .pill{border:1px solid var(--ring);padding:6px 10px;border-radius:999px;font-size:12px;background:#0b1223;color:#d1d5db}
 .pager{display:flex;gap:8px;justify-content:center;align-items:center;margin-top:16px}
-
 .modal{position:fixed;inset:0;background:rgba(2,6,23,.6);backdrop-filter:blur(4px);display:none;align-items:center;justify-content:center;padding:16px;z-index:50}
-.modal .box{width:min(760px,100%);max-height:85dvh;overflow:auto;background:#0b1223;border:1px solid var(--ring);border-radius:18px;padding:16px}
+.modal .box{width:min(780px,100%);max-height:85dvh;overflow:auto;background:#0b1223;border:1px solid var(--ring);border-radius:18px;padding:16px}
 .field{display:flex;flex-direction:column;gap:6px;margin:10px 0}
 .field input[type="text"], .field textarea, .field input[type="email"], .field input[type="password"]{background:#0b1223;border:1px solid var(--ring);color:#e5e7eb;border-radius:12px;padding:10px 12px}
-.thumbs{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px}
 
+.thumbs{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px}
 .note{background:var(--note);color:var(--note-text);border:1px solid var(--note-line);border-radius:12px;padding:12px 14px;margin:8px 0;font-size:16px;font-weight:700}
 .note .meta{display:flex;justify-content:space-between;color:#1e293b;font-size:13.5px;margin-bottom:6px;font-weight:700}
 .note .text{white-space:pre-wrap;line-height:1.65}
+.note .chips{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0}
+.chip-sm{background:#e0f2fe;border:1px solid #bae6fd;color:#0b1223;padding:2px 8px;border-radius:999px;font-size:12px;font-weight:800}
 
 .viewer{position:fixed;inset:0;background:rgba(0,0,0,.9);display:none;align-items:center;justify-content:center;z-index:60}
 .viewer img{max-width:96vw;max-height:92vh;object-fit:contain;border-radius:12px}
@@ -65,6 +69,8 @@ body{margin:0;font-family:"Cairo",system-ui;background:radial-gradient(1200px 80
 .nav.prev{right:auto;left:14px}
 .nav.next{left:auto;right:14px}
 .viewer .close{position:fixed;top:14px;right:14px}
+.sessions-wrap{display:flex;flex-wrap:wrap;gap:10px}
+.sessions-wrap label{display:flex;align-items:center;gap:6px;background:#0b1223;border:1px solid var(--ring);padding:6px 10px;border-radius:999px;font-size:13px}
 </style>
 </head>
 <body>
@@ -80,7 +86,7 @@ body{margin:0;font-family:"Cairo",system-ui;background:radial-gradient(1200px 80
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
           <path d="M21 21l-3.9-3.9m1.4-5.2a7.5 7.5 0 11-15 0 7.5 7.5 0 0115 0z" stroke="#7dd3fc" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
-        <input id="search" type="text" placeholder="ابحث بالاسم أو الـ ID" autocomplete="off" />
+        <input id="search" type="text" placeholder="ابحث بالاسم أو الـ ID" autocomplete="off"/>
         <button class="btn" id="clearBtn">مسح</button>
       </div>
       <button class="btn primary" id="addBtn" style="display:none">+ إضافة حالة</button>
@@ -97,7 +103,7 @@ body{margin:0;font-family:"Cairo",system-ui;background:radial-gradient(1200px 80
     <button class="btn" id="nextPage" disabled>التالي</button>
   </div>
 
-  <div class="footer">يعرض 50 حالة/صفحة • البحث بالاسم أو الـ ID • الملاحظات للجميع • إدارة الحالات للأدمن.</div>
+  <div class="footer">50 حالة/صفحة • البحث بالاسم أو الـ ID • الملاحظات للجميع • إدارة الحالات للأدمن</div>
 </div>
 
 <!-- إضافة حالة -->
@@ -105,7 +111,7 @@ body{margin:0;font-family:"Cairo",system-ui;background:radial-gradient(1200px 80
   <div class="box">
     <h3 style="margin:0 0 8px;font-weight:800">إضافة حالة جديدة</h3>
     <div class="field"><label>الاسم</label><input type="text" id="caseName" placeholder="مثال: أحمد علي"></div>
-    <div class="field"><label>ID الحالة (اختياري لكن مفضل)</label><input type="text" id="caseIdInput" placeholder="مثال: H123 أو 2025-0001"></div>
+    <div class="field"><label>ID الحالة (MRN) (اختياري)</label><input type="text" id="caseIdInput" placeholder="مثال: H123 / 2025-0001"></div>
     <div class="field">
       <label>روابط الصور (اختياري – كل رابط في سطر)</label>
       <textarea id="caseUrls" rows="4" placeholder="الصق روابط (Drive/Dropbox/OneDrive)… كل رابط في سطر"></textarea>
@@ -122,16 +128,9 @@ body{margin:0;font-family:"Cairo",system-ui;background:radial-gradient(1200px 80
       <button class="btn" id="closeImages">إغلاق</button>
     </div>
 
-    <!-- إضافة لينك صورة (للأدمن فقط) -->
     <div id="adminAddLink" style="display:none;margin:10px 0 4px">
-      <div class="field">
-        <label>إضافة رابط صورة (بدون رفع)</label>
-        <input id="newImageUrl" type="text" placeholder="الصق رابط الصورة…" />
-      </div>
-      <div class="row">
-        <button class="btn primary" id="addImageLinkBtn">+ إضافة الرابط</button>
-        <span class="pill">يمكنك إضافة أي عدد من الصور</span>
-      </div>
+      <div class="field"><label>إضافة رابط صورة (بدون رفع)</label><input id="newImageUrl" type="text" placeholder="الصق رابط الصورة…"/></div>
+      <div class="row"><button class="btn primary" id="addImageLinkBtn">+ إضافة الرابط</button><span class="pill">يمكنك إضافة أي عدد</span></div>
       <div id="imgAddMsg" style="margin-top:6px;color:#a1a1aa;font-size:12px"></div>
     </div>
 
@@ -153,14 +152,35 @@ body{margin:0;font-family:"Cairo",system-ui;background:radial-gradient(1200px 80
     <div class="row" style="justify-content:space-between;align-items:center">
       <h3 style="margin:0;font-weight:800">الملاحظات</h3>
       <div class="row">
-        <button class="btn" id="exportNotes">تحميل Excel</button>
+        <button class="btn" id="exportWord">تحميل Word</button>
         <button class="btn" id="closeNotes">إغلاق</button>
       </div>
     </div>
-    <div id="notesList" style="margin-top:10px"></div>
-    <div class="field" style="margin-top:12px"><label>الاسم (اختياري)</label><input type="text" id="noteBy" placeholder="مثال: د. محمد / تمريض / ولي أمر"></div>
+
+    <!-- Sessions -->
+    <div class="field">
+      <label>Sessions:</label>
+      <div id="sessionOptions" class="sessions-wrap">
+        <label><input type="checkbox" value="MT"> MT</label>
+        <label><input type="checkbox" value="GYM"> GYM</label>
+        <label><input type="checkbox" value="Tilt"> Tilt</label>
+        <label><input type="checkbox" value="Balance"> Balance</label>
+        <label><input type="checkbox" value="Parallel Bar"> Parallel Bar</label>
+        <label><input type="checkbox" value="Gait Training"> Gait Training</label>
+        <label><input type="checkbox" value="Hydro"> Hydro</label>
+        <label><input type="checkbox" value="Treadmill"> Treadmill</label>
+        <label><input type="checkbox" value="Hot Pack"> Hot Pack</label>
+        <label><input type="checkbox" value="US"> US</label>
+        <label><input type="checkbox" value="Laser"> Laser</label>
+        <label><input type="checkbox" value="Other"> Other</label>
+      </div>
+    </div>
+
+    <div class="field" style="margin-top:4px"><label>الاسم (اختياري)</label><input type="text" id="noteBy" placeholder="مثال: د. محمد / تمريض / ولي أمر"></div>
     <div class="field"><label>الملاحظة</label><textarea id="noteText" rows="3" placeholder="اكتب الملاحظة هنا..."></textarea></div>
     <div class="row"><span class="pill">العدد: <span id="notesCounter">0</span></span><button class="btn primary" id="addNoteBtn">+ إضافة ملاحظة</button></div>
+
+    <div id="notesList" style="margin-top:10px"></div>
   </div>
 </div>
 
@@ -189,7 +209,6 @@ const DIACRITICS = /[\u064B-\u065F\u06ED]/g;
 const normalizeArabic = s => (s||"").replace(DIACRITICS,"").replace(/[إأآا]/g,"ا").replace(/ى/g,"ي").replace(/ؤ/g,"و").replace(/ئ/g,"ي").trim();
 const parseUrls = raw => (raw||"").split(/\n+/).map(x=>x.trim()).filter(Boolean);
 const lower = s => (s||"").toString().trim().toLowerCase();
-
 function toDirectView(url){
   if(!url) return "";
   let m = url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/) || url.match(/[?&]id=([a-zA-Z0-9_-]+)/);
@@ -219,7 +238,6 @@ const caseUrls = document.getElementById("caseUrls");
 const cancelAdd = document.getElementById("cancelAdd");
 const confirmAdd = document.getElementById("confirmAdd");
 const authArea = document.getElementById("authArea");
-
 const prevPageBtn = document.getElementById("prevPage");
 const nextPageBtn = document.getElementById("nextPage");
 const pageNo = document.getElementById("pageNo");
@@ -234,12 +252,13 @@ const imgAddMsg = document.getElementById("imgAddMsg");
 
 const notesModal  = document.getElementById("notesModal");
 const closeNotes  = document.getElementById("closeNotes");
-const exportNotes = document.getElementById("exportNotes");
+const exportWord  = document.getElementById("exportWord");
 const notesList   = document.getElementById("notesList");
 const noteBy      = document.getElementById("noteBy");
 const noteText    = document.getElementById("noteText");
 const addNoteBtn  = document.getElementById("addNoteBtn");
 const notesCounter= document.getElementById("notesCounter");
+const sessionOptions = document.getElementById("sessionOptions");
 
 const viewer = document.getElementById("viewer");
 const viewerImg = document.getElementById("viewerImg");
@@ -265,11 +284,13 @@ function renderLetters(){
     lettersBar.appendChild(b);
   });
 }
+renderLetters();
+
 searchInput.addEventListener("input",()=>{ state.query=searchInput.value; state.page=1; state.pagesCursors=[null]; loadPage(); });
 clearBtn.onclick=()=>{ searchInput.value=""; state.query=""; state.page=1; state.pagesCursors=[null]; loadPage(); };
 
 /* ===== Firestore pagination + Search ===== */
-import { where, startAfter as _startAfter } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { where } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 async function queryByName(qNorm, cursor){
   const base = collection(db,"cases");
   const pageLim = limit(state.pageSize);
@@ -331,12 +352,12 @@ function renderGrid(){
     card.innerHTML = `
       <div class="topBtns">
         <button class="btn" data-images="${item.id}">الصور (${imgs.length||0})</button>
-        <button class="btn add-img" data-addimg="${item.id}">+ إضافة صورة</button>
+        <button class="btn add-img" data-addimg="${item.id}">+ صورة</button>
         <button class="btn" data-notes="${item.id}" id="btn-notes-${item.id}">الملاحظات (…)</button>
       </div>
       <img class="thumb" loading="lazy" referrerpolicy="no-referrer" src="${first}" alt="${item.name}">
       <button class="del" data-del="${item.id}">حذف</button>
-      <div class="meta" title="${extId ? 'ID: '+extId : ''}">
+      <div class="meta" title="${extId ? 'MRN: '+extId : ''}">
         <div class="name">${item.name}</div>
         ${extId ? `<div class="idpill">${extId}</div>` : `<div class="badge">${normalizeArabic(item.name).charAt(0) || ""}</div>`}
       </div>
@@ -416,6 +437,7 @@ async function loadNotes(caseId){
   const qs = await getDocs(query(collection(db,"cases",caseId,"notes"), orderBy("createdAtTS","desc")));
   return qs.docs.map(d=>({id:d.id,...d.data()}));
 }
+function chip(s){ const e=document.createElement("span"); e.className="chip-sm"; e.textContent=s; return e; }
 function renderNotesList(list){
   notesList.innerHTML=""; notesCounter.textContent=list.length;
   if(!list.length){ notesList.innerHTML=`<div class="empty">لا توجد ملاحظات بعد.</div>`; return; }
@@ -424,7 +446,11 @@ function renderNotesList(list){
     const when=n.createdAt?new Date(n.createdAt).toLocaleString('ar-EG'):"";
     const el=document.createElement("div");
     el.className="note";
-    el.innerHTML=`<div class="meta"><span>${by}</span><span>${when}</span></div><div class="text">${n.text}</div>`;
+    const chips=document.createElement("div"); chips.className="chips";
+    (n.sessions||[]).forEach(s=>chips.appendChild(chip(s)));
+    el.innerHTML=`<div class="meta"><span>${by}</span><span>${when}</span></div>`;
+    el.appendChild(chips);
+    const t=document.createElement("div"); t.className="text"; t.textContent=n.text||""; el.appendChild(t);
     notesList.appendChild(el);
   });
 }
@@ -436,43 +462,108 @@ async function openNotesModal(caseId){
   catch{ notesList.innerHTML=`<div class="empty">تعذّر تحميل الملاحظات.</div>`; }
 }
 closeNotes.onclick=()=>notesModal.style.display="none";
+
 addNoteBtn.onclick=async ()=>{
   const text=(noteText.value||"").trim();
   const by=(noteBy.value||"").trim()||"اسم الدكتور";
-  if(!currentCase) return; if(!text){ alert("اكتب الملاحظة أولاً"); return; }
+  const sessions = Array.from(sessionOptions.querySelectorAll('input:checked')).map(cb=>cb.value);
+  if(!currentCase) return;
+  if(!text && sessions.length===0){ alert("أضف ملاحظة أو اختر Session"); return; }
   try{
-    await addDoc(collection(db,"cases",currentCase.id,"notes"), { text, by, createdAt:new Date().toISOString(), createdAtTS:Date.now() });
-    noteText.value=""; noteBy.value="";
+    await addDoc(collection(db,"cases",currentCase.id,"notes"), { text, by, sessions, createdAt:new Date().toISOString(), createdAtTS:Date.now() });
+    noteText.value=""; noteBy.value=""; sessionOptions.querySelectorAll('input').forEach(cb=>cb.checked=false);
     const list=await loadNotes(currentCase.id); renderNotesList(list); updateNotesCount(currentCase.id).catch(()=>{});
   }catch{ alert("تعذّر إضافة الملاحظة."); }
 };
 
-/* ===== Export notes to Excel (per case) ===== */
-exportNotes.onclick = async ()=>{
+/* ===== Export Word (per case) ===== */
+exportWord.onclick = async ()=>{
+  if(!currentCase){ alert("افتح الملاحظات لحالة أولاً."); return; }
+  const list = await loadNotes(currentCase.id);
+
+  const { Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell, WidthType, AlignmentType, VerticalAlign, HeadingLevel, Footer, BorderStyle, ShadingType, ImageRun } = window.docx;
+
+  // شعار
+  let logoBuffer=null;
   try{
-    if(!currentCase){ alert("افتح الملاحظات لحالة أولاً."); return; }
-    const list = await loadNotes(currentCase.id);
-    const rows = list.map(n=>({
-      "Case Name": currentCase.name || "",
-      "Case ID": currentCase.caseId || "",
-      "التاريخ": n.createdAt ? new Date(n.createdAt).toLocaleString('ar-EG') : "",
-      "بواسطة": n.by || "اسم الدكتور",
-      "الملاحظة": n.text || ""
+    const resp = await fetch("./chg-logo.png"); // ارفع chg-logo.png في جذر الريبو
+    if(resp.ok) logoBuffer = await resp.arrayBuffer();
+  }catch(e){ /* تجاهل لو مش موجود */ }
+
+  // جدول الهيدر (شعار + Patient identification)
+  const headerRow = new TableRow({
+    children:[
+      new TableCell({
+        width:{size:25,type:WidthType.PERCENTAGE},
+        margins:{top:200,right:200,bottom:200,left:200},
+        children:[ logoBuffer ? new Paragraph({ children:[ new ImageRun({ data:logoBuffer, transformation:{width:100,height:100}}) ] }) : new Paragraph("") ],
+        verticalAlign: VerticalAlign.CENTER
+      }),
+      new TableCell({
+        width:{size:75,type:WidthType.PERCENTAGE},
+        children:[
+          new Paragraph({ alignment: AlignmentType.RIGHT, children:[ new TextRun({text:"Patient’s identification", bold:true}) ] }),
+          new Paragraph({ alignment: AlignmentType.RIGHT, children:[ new TextRun({text:`NAME: ${currentCase.name||""}`}) ] }),
+          new Paragraph({ alignment: AlignmentType.RIGHT, children:[ new TextRun({text:`MRN: ${currentCase.caseId||""}`}) ] }),
+        ]
+      })
+    ]
+  });
+  const headerTable = new Table({
+    rows:[headerRow],
+    width:{size:100,type:WidthType.PERCENTAGE}
+  });
+
+  // عنوان
+  const title = new Paragraph({
+    text:"PHYSIOTHERAPY PROGRESS NOTE",
+    heading: HeadingLevel.HEADING_1,
+    alignment: AlignmentType.CENTER
+  });
+
+  // رأس الجدول
+  const head = new TableRow({
+    children:[
+      new TableCell({children:[new Paragraph("DATE / TIME")]}),
+      new TableCell({children:[new Paragraph("SESSION(S)")]}),
+      new TableCell({children:[new Paragraph("NOTE")]}),
+      new TableCell({children:[new Paragraph("SIGNATURE")]})
+    ]
+  });
+
+  const rows = [head];
+  list.forEach(n=>{
+    rows.push(new TableRow({
+      children:[
+        new TableCell({children:[new Paragraph(n.createdAt ? new Date(n.createdAt).toLocaleString('ar-EG') : "")]}),
+        new TableCell({children:[new Paragraph((n.sessions||[]).join(", "))]}),
+        new TableCell({children:[new Paragraph(n.text||"")]}),
+        new TableCell({children:[new Paragraph(n.by||"اسم الدكتور")]})
+      ]
     }));
-    if(rows.length===0){
-      rows.push({"Case Name": currentCase.name||"", "Case ID": currentCase.caseId||"", "التاريخ":"", "بواسطة":"اسم الدكتور", "الملاحظة":"(لا توجد ملاحظات)"});
-    }
-    const ws = XLSX.utils.json_to_sheet(rows, {header:["Case Name","Case ID","التاريخ","بواسطة","الملاحظة"]});
-    ws['!cols'] = [{wch:20},{wch:24},{wch:22},{wch:18},{wch:60}];
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "الملاحظات");
-    const safe = (currentCase.name||"case").replace(/[\\/:*?"<>|]+/g,"-");
-    const fn = `notes_${safe}.xlsx`;
-    XLSX.writeFile(wb, fn);
-  }catch(e){
-    console.error(e);
-    alert("تعذّر إنشاء ملف Excel. جرّب ثانية.");
-  }
+  });
+
+  const notesTable = new Table({
+    rows,
+    width:{size:100, type:WidthType.PERCENTAGE}
+  });
+
+  // Footer بكود النموذج
+  const footer = new Footer({
+    children:[ new Paragraph({ alignment: AlignmentType.LEFT, children:[ new TextRun("CHG-OCT-004-004") ] }) ]
+  });
+
+  const doc = new Document({
+    sections:[{
+      properties:{},
+      footers:{ default: footer },
+      children:[ headerTable, title, new Paragraph(""), notesTable ]
+    }]
+  });
+
+  const blob = await Packer.toBlob(doc);
+  const safe = (currentCase.name||"case").replace(/[\\/:*?"<>|]+/g,"-");
+  saveAs(blob, `progress_notes_${safe}.docx`);
 };
 
 /* ===== Auth ===== */
@@ -495,7 +586,7 @@ function renderAuthArea(user){
 }
 onAuthStateChanged(auth, renderAuthArea);
 
-/* ===== Add case (with external ID) ===== */
+/* ===== Add case ===== */
 addBtn.onclick=()=>{ addModal.style.display="flex"; caseName.focus(); };
 document.addEventListener("keydown",(e)=>{ if(e.key==="Escape"){ addModal.style.display="none"; imagesModal.style.display="none"; notesModal.style.display="none"; viewer.style.display="none"; } });
 cancelAdd.onclick=()=>{ addModal.style.display="none"; caseName.value=""; caseIdInput.value=""; caseUrls.value=""; };
@@ -526,8 +617,6 @@ confirmAdd.onclick=async ()=>{
 };
 
 /* ===== Init ===== */
-function setupLetters(){ lettersBar.innerHTML=""; ARABIC_LETTERS.forEach(l=>{ const b=document.createElement("button"); b.className="chip"+(l===state.letter?" active":""); b.textContent=l; b.onclick=()=>{ state.letter=l; document.querySelectorAll('.chip').forEach(x=>x.classList.remove('active')); b.classList.add('active'); state.page=1; state.pagesCursors=[null]; loadPage(); }; lettersBar.appendChild(b); }); }
-setupLetters();
 loadPage();
 </script>
 </body>
